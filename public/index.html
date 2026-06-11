@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Archivo Offline LaCuerda - Visualizador de Acordes</title>
+  <!-- Google Fonts: Inter para la interfaz y Fira Code para las tablaturas monoespaciadas -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+  <!-- Encabezado principal -->
+  <header class="app-header">
+    <div class="header-logo">
+      <span class="logo-icon">🎸</span>
+      <h1>LaCuerda <span>Offline</span></h1>
+    </div>
+    <div class="search-container">
+      <input type="text" id="search-input" placeholder="Buscar por canción o artista..." autocomplete="off">
+      <span class="search-icon">🔍</span>
+    </div>
+  </header>
+
+  <!-- Contenedor de la aplicación -->
+  <div class="app-container">
+    
+    <!-- Sidebar: Lista de canciones -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <h2>Canciones Guardadas (<span id="songs-count">0</span>)</h2>
+      </div>
+      <div id="songs-list" class="songs-list">
+        <!-- Las canciones se inyectarán dinámicamente aquí -->
+        <div class="list-loading">Cargando catálogo...</div>
+      </div>
+    </aside>
+
+    <!-- Visualizador principal -->
+    <main class="viewer-container" id="viewer-container">
+      <!-- Estado vacío por defecto -->
+      <div id="empty-state" class="empty-state">
+        <div class="empty-state-content">
+          <span class="music-icon">🎶</span>
+          <h2>Visualizador de Acordes</h2>
+          <p>Selecciona una canción de la lista lateral para comenzar a tocar. El visualizador cuenta con controles de autodesplazamiento y ajuste de tamaño de letra.</p>
+        </div>
+      </div>
+
+      <!-- Contenedor del contenido (se muestra cuando hay una canción activa) -->
+      <article id="song-viewer" class="song-viewer hidden">
+        
+        <!-- Cabecera de la canción -->
+        <header class="song-header">
+          <div class="song-meta">
+            <h2 id="song-title">Título de la Canción</h2>
+            <h3 id="song-artist">Artista</h3>
+            <div class="song-tags">
+              <span id="song-type-tag" class="tag type-tag">CHORDS</span>
+              <span id="song-version-tag" class="tag version-tag">Versión 1</span>
+            </div>
+          </div>
+          
+          <!-- Enlaces externos -->
+          <div class="external-links">
+            <a id="link-original" href="#" target="_blank" rel="noopener">Sitio Original ↗</a>
+            <a id="link-wayback" href="#" target="_blank" rel="noopener">Wayback Machine ↗</a>
+          </div>
+        </header>
+
+        <!-- Barra de herramientas flotante/superior -->
+        <section class="toolbar">
+          <!-- Control de Tamaño de Letra -->
+          <div class="tool-group">
+            <label for="font-size-slider">Tamaño letra: <span id="font-size-label">16px</span></label>
+            <input type="range" id="font-size-slider" min="12" max="28" value="16" step="1">
+          </div>
+
+          <!-- Control de Autoscroll -->
+          <div class="tool-group autoscroll-controls">
+            <button id="btn-autoscroll" class="btn btn-primary">
+              <span class="btn-icon">▶</span>
+              <span class="btn-text">Autoscroll</span>
+            </button>
+            <div class="scroll-speed-group">
+              <label for="scroll-speed-slider">Velocidad:</label>
+              <input type="range" id="scroll-speed-slider" min="1" max="10" value="3" step="1">
+              <span id="scroll-speed-label">x3</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- Listado de acordes iniciales recomendados -->
+        <section id="song-chords-box" class="chords-box hidden">
+          <h4>Acordes en esta canción:</h4>
+          <div id="song-chords-list" class="chords-list">
+            <!-- Acordes inyectados -->
+          </div>
+        </section>
+
+        <!-- Contenedor del pre-texto de la tablatura -->
+        <section class="tab-content-container">
+          <pre id="tab-content" class="tab-content">
+            <!-- La tablatura formateada se inyectará aquí -->
+          </pre>
+        </section>
+
+      </article>
+    </main>
+
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>

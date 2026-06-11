@@ -1,0 +1,6 @@
+# Agrega una URL de LaCuerda por línea.
+# Las líneas que comiencen con # serán ignoradas.
+https://acordes.lacuerda.net/mon_laferte/tu_falta_de_querer
+https://acordes.lacuerda.net/mon_laferte/amor_completo
+https://acordes.lacuerda.net/mon_laferte/mi_buen_amor
+https://acordes.lacuerda.net/mon_laferte/amarrame
