@@ -5,9 +5,11 @@
   "type": "module",
   "main": "src/index.js",
   "scripts": {
-    "start": "node --experimental-sqlite src/index.js",
-    "query": "node --experimental-sqlite src/query.js",
-    "dev": "node --experimental-sqlite src/server.js"
+    "start": "node src/index.js",
+    "query": "node src/query.js",
+    "build": "npm run build --prefix frontend",
+    "dev": "npm run dev --prefix frontend & node src/server.js",
+    "prod": "npm run build && node src/server.js"
   },
   "dependencies": {
     "@fastify/static": "^9.1.3",

@@ -1,2 +1,12 @@
 node_modules
 chords.db
+
+# Frontend dependencies
+frontend/node_modules/
+frontend/dist/
+
+# Compiled public assets
+public/assets/
+public/index.html
+public/favicon.svg
+public/icons.svg
