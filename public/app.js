@@ -29,7 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const songBreadcrumbTitle = document.getElementById('song-breadcrumb-title');
   const songViewTitle = document.getElementById('song-view-title');
   const songViewArtist = document.getElementById('song-view-artist');
-  const songVersionsTableBody = document.getElementById('song-versions-table-body');
+  const songVersionsGrid = document.getElementById('song-versions-grid');
   
   // Vista Versión / Tablatura
   const versionBreadcrumbArtistLink = document.getElementById('version-breadcrumb-artist-link');
@@ -362,7 +362,7 @@ document.addEventListener('DOMContentLoaded', () => {
     songBreadcrumbTitle.textContent = 'Cargando...';
     songViewTitle.textContent = 'Cargando Canción...';
     songViewArtist.innerHTML = '...';
-    songVersionsTableBody.innerHTML = '<tr><td colspan="5" class="list-loading">Cargando versiones disponibles...</td></tr>';
+    songVersionsGrid.innerHTML = '<div class="list-loading">Cargando versiones disponibles...</div>';
 
     try {
       const response = await fetch(`/api/songs/${artistSlug}/${songSlug}`);
@@ -379,37 +379,71 @@ document.addEventListener('DOMContentLoaded', () => {
       songViewTitle.textContent = data.title;
       songViewArtist.innerHTML = `de <a href="/${artistSlug}">${data.artist}</a>`;
 
-      // Renderizar tabla de versiones
+      // Renderizar tarjetas de versiones
       if (data.versions.length === 0) {
-        songVersionsTableBody.innerHTML = '<tr><td colspan="5" class="list-empty">No hay versiones locales guardadas</td></tr>';
+        songVersionsGrid.innerHTML = '<div class="list-empty">No hay versiones locales guardadas</div>';
       } else {
-        songVersionsTableBody.innerHTML = data.versions.map(ver => {
-          // Obtener nombre del archivo de la versión para el link (ej: mi_buen_amor-4.shtml)
+        songVersionsGrid.innerHTML = data.versions.map(ver => {
+          // Obtener nombre del archivo de la versión para el link
           const urlParts = ver.source_url.split('/');
-          const filename = urlParts[urlParts.length - 1]; // "mi_buen_amor-4.shtml"
-          
-          // Formatear acordes
-          const chordBadges = ver.chords 
-            ? ver.chords.split(/\s+/).slice(0, 6).map(c => `<span class="chord-badge">${c}</span>`).join('')
-            : '<span class="text-muted">Ninguno</span>';
+          const filename = urlParts[urlParts.length - 1];
+
+          // Determinar icono y título legible según tipo
+          let typeLabel = 'Letra y Acordes';
+          let typeIcon = '🎼';
+          if (ver.type === 'tab') {
+            typeLabel = 'Tablatura';
+            typeIcon = '🎸';
+          } else if (ver.type === 'bass') {
+            typeLabel = 'Tab p/Bajo';
+            typeIcon = '🎻';
+          }
+
+          // Crear indicador de rating / mejor versión
+          let badgeHtml = '';
+          if (ver.is_best) {
+            badgeHtml = `<span class="best-version-badge">mejor versión ✓</span>`;
+          } else {
+            // Simular calidad de 3 a 5 estrellas para barras
+            const numBars = 3 + (ver.id % 3);
+            let barsHtml = '<div class="rating-bars">';
+            for (let i = 1; i <= 5; i++) {
+              const activeClass = i <= numBars ? 'active' : '';
+              barsHtml += `<span class="rating-bar ${activeClass}"></span>`;
+            }
+            barsHtml += '</div>';
+            badgeHtml = barsHtml;
+          }
+
+          // Preparar vista previa
+          const previewSnippet = escapeHtml(ver.content || 'Sin vista previa disponible.');
 
           return `
-            <tr>
-              <td><strong>Versión ${ver.version_number}</strong></td>
-              <td><span class="tag type-tag">${ver.type}</span></td>
-              <td>${ver.contributor || 'Colaborador'}</td>
-              <td>${chordBadges} ${ver.chords && ver.chords.split(/\s+/).length > 6 ? '...' : ''}</td>
-              <td>
-                <a href="/${artistSlug}/${filename}" class="btn btn-primary btn-sm">Ver Acordes</a>
-              </td>
-            </tr>
+            <a href="/${artistSlug}/${filename}" class="version-preview-card">
+              <div class="version-card-header">
+                <div class="version-card-title-container">
+                  <span class="version-card-icon">${typeIcon}</span>
+                  <span class="version-card-title">${typeLabel}</span>
+                </div>
+                <div class="version-card-badge-container">
+                  ${badgeHtml}
+                </div>
+              </div>
+              <div class="version-card-body">
+                <pre class="version-card-preview-text">${previewSnippet}</pre>
+              </div>
+              <div class="version-card-footer">
+                <span class="version-card-contributor">Colaborador: <strong>${ver.contributor || 'Colaborador'}</strong></span>
+                <span class="version-card-number">Versión ${ver.version_number}</span>
+              </div>
+            </a>
           `;
         }).join('');
       }
     } catch (error) {
       console.error(error);
       songViewTitle.textContent = 'Error al cargar canción';
-      songVersionsTableBody.innerHTML = '<tr><td colspan="5" class="list-empty">No se pudo encontrar el catálogo de la canción.</td></tr>';
+      songVersionsGrid.innerHTML = '<div class="list-empty">No se pudo encontrar el catálogo de la canción.</div>';
     }
   }
 

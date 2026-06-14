@@ -155,8 +155,9 @@ async function processQueue() {
 
       if (parsed.isVersionPage) {
         // Es una página con la tablatura/acordes completos. Guardarla.
+        parsed.song.is_best = task.isBest || false;
         await db.saveSong(parsed.song);
-        console.log(`[OK] Guardado: ${parsed.song.artist} - ${parsed.song.title} (Versión ${parsed.song.version_number}) [${parsed.song.type.toUpperCase()}]`);
+        console.log(`[OK] Guardado: ${parsed.song.artist} - ${parsed.song.title} (Versión ${parsed.song.version_number}) [${parsed.song.type.toUpperCase()}]${task.isBest ? ' [MEJOR VERSIÓN]' : ''}`);
         successCount++;
       } else {
         // Es una página de índice con múltiples versiones
@@ -187,9 +188,10 @@ async function processQueue() {
             queue.push({
               url: archiveVersionUrl,
               timestamp: timestamp,
-              sourceUrl: target.source_url
+              sourceUrl: target.source_url,
+              isBest: target.isBest
             });
-            console.log(`   + Encolada versión: ${target.source_url}`);
+            console.log(`   + Encolada versión: ${target.source_url} (Mejor: ${target.isBest ? 'Sí' : 'No'})`);
           }
         }
       }

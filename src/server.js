@@ -153,6 +153,8 @@ fastify.get('/api/songs/:artistSlug/:songSlug', async (request, reply) => {
         type: song.type,
         contributor: song.contributor,
         chords: song.chords,
+        content: song.content,
+        is_best: song.is_best || false,
         source_url: song.source_url,
         archive_url: song.archive_url
       }))

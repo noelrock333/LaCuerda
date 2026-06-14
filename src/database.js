@@ -1,4 +1,4 @@
-import { pgTable, serial, text, integer, timestamp } from 'drizzle-orm/pg-core';
+import { pgTable, serial, text, integer, timestamp, boolean } from 'drizzle-orm/pg-core';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { eq, sql, ilike, or } from 'drizzle-orm';
 import pg from 'pg';
@@ -33,6 +33,7 @@ export const songs = pgTable('songs', {
   content: text('content').notNull(),
   source_url: text('source_url').notNull().unique(),
   archive_url: text('archive_url').notNull(),
+  is_best: boolean('is_best').default(false),
   scraped_at: timestamp('scraped_at').defaultNow()
 });
 
@@ -78,6 +79,11 @@ export class ChordsDatabase {
     await this.db.execute(sql`
       CREATE INDEX IF NOT EXISTS idx_songs_artist_title ON songs (artist, title)
     `);
+
+    // Añadir columna is_best si no existe (migración en caliente)
+    await this.db.execute(sql`
+      ALTER TABLE songs ADD COLUMN IF NOT EXISTS is_best BOOLEAN DEFAULT FALSE
+    `);
   }
 
   /**
@@ -110,7 +116,8 @@ export class ChordsDatabase {
         contributor: song.contributor || 'Colaborador',
         content: song.content,
         source_url: song.source_url,
-        archive_url: song.archive_url
+        archive_url: song.archive_url,
+        is_best: song.is_best || false
       })
       .onConflictDoUpdate({
         target: songs.source_url,
@@ -123,6 +130,7 @@ export class ChordsDatabase {
           contributor: song.contributor || 'Colaborador',
           content: song.content,
           archive_url: song.archive_url,
+          is_best: song.is_best || false,
           scraped_at: sql`CURRENT_TIMESTAMP`
         }
       });
