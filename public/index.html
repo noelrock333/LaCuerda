@@ -41,6 +41,40 @@
           <input type="text" id="home-search-input" placeholder="Escribe un artista o canción..." autocomplete="off" autofocus>
           <span class="search-btn-icon">🔍</span>
         </div>
+
+        <div class="alphabet-nav">
+          <span class="alphabet-nav-title">Índice Alfabético</span>
+          <div class="alphabet-links">
+            <a href="/letter/A">A</a>
+            <a href="/letter/B">B</a>
+            <a href="/letter/C">C</a>
+            <a href="/letter/D">D</a>
+            <a href="/letter/E">E</a>
+            <a href="/letter/F">F</a>
+            <a href="/letter/G">G</a>
+            <a href="/letter/H">H</a>
+            <a href="/letter/I">I</a>
+            <a href="/letter/J">J</a>
+            <a href="/letter/K">K</a>
+            <a href="/letter/L">L</a>
+            <a href="/letter/M">M</a>
+            <a href="/letter/N">N</a>
+            <a href="/letter/Ñ">Ñ</a>
+            <a href="/letter/O">O</a>
+            <a href="/letter/P">P</a>
+            <a href="/letter/Q">Q</a>
+            <a href="/letter/R">R</a>
+            <a href="/letter/S">S</a>
+            <a href="/letter/T">T</a>
+            <a href="/letter/U">U</a>
+            <a href="/letter/V">V</a>
+            <a href="/letter/W">W</a>
+            <a href="/letter/X">X</a>
+            <a href="/letter/Y">Y</a>
+            <a href="/letter/Z">Z</a>
+            <a href="/letter/0-9">0-9</a>
+          </div>
+        </div>
       </div>
 
       <!-- Resultados de búsqueda en 2 columnas -->
@@ -194,6 +228,32 @@
         <pre id="version-tab-content" class="tab-content">
           <!-- Tablatura inyectada -->
         </pre>
+      </div>
+    </section>
+
+    <!-- ==========================================
+         VISTA 5: ÍNDICE ALFABÉTICO DE ARTISTAS (ALPHABET)
+         ========================================== -->
+    <section id="view-alphabet" class="view-section hidden">
+      <header class="view-header">
+        <div class="breadcrumbs">
+          <a href="/">Portada</a> &raquo; Artistas empezando con <span id="alphabet-breadcrumb-letter">X</span>
+        </div>
+        <h2 class="view-title">Artistas: <span id="alphabet-title-letter">X</span></h2>
+      </header>
+
+      <div class="alphabet-layout">
+        <!-- Listado de Artistas en cuadrícula -->
+        <div class="artists-index-container">
+          <div class="artists-index-grid" id="alphabet-artists-grid">
+            <!-- Inyectado dinámicamente -->
+          </div>
+        </div>
+
+        <!-- Controles de Paginación -->
+        <div class="pagination-container" id="alphabet-pagination">
+          <!-- Inyectado dinámicamente -->
+        </div>
       </div>
     </section>
 

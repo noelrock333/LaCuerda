@@ -58,6 +58,30 @@ fastify.get('/api/search', async (request, reply) => {
   }
 });
 
+// 1.5. Obtener lista de artistas por letra inicial (paginado de 50 en 50)
+// GET /api/artists/by-letter/:letter?page=1
+fastify.get('/api/artists/by-letter/:letter', async (request, reply) => {
+  const { letter } = request.params;
+  const page = parseInt(request.query.page || 1, 10);
+  const limit = 50;
+  const offset = (page - 1) * limit;
+
+  try {
+    const { artists, total } = await db.getArtistsByLetter(letter, limit, offset);
+    return {
+      letter,
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+      artists
+    };
+  } catch (error) {
+    fastify.log.error(error);
+    reply.status(500).send({ error: 'Error al recuperar artistas por letra' });
+  }
+});
+
 // 2. Obtener catálogo agrupado de canciones de un artista por su slug
 // GET /api/artists/mon_laferte
 fastify.get('/api/artists/:artistSlug', async (request, reply) => {

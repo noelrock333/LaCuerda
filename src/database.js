@@ -237,6 +237,66 @@ export class ChordsDatabase {
   }
 
   /**
+   * Obtiene artistas únicos que comienzan con una letra específica, ordenados alfabéticamente y paginados.
+   * @param {string} letter Letra inicial (e.g. 'A', 'B', o '0-9' para caracteres especiales/números)
+   * @param {number} limit Límite de resultados (por defecto 50)
+   * @param {number} offset Desplazamiento
+   * @returns {Promise<{artists: Array<{name: string, slug: string}>, total: number}>}
+   */
+  async getArtistsByLetter(letter, limit = 50, offset = 0) {
+    let whereClause;
+    const cleanLetter = letter.trim().toUpperCase();
+
+    if (cleanLetter === '0-9' || cleanLetter === 'OTHERS' || cleanLetter === '*') {
+      // Artistas que empiezan con número o carácter no alfabético (excluyendo letras con acento y Ñ)
+      whereClause = sql`artist ~ '^[^a-zA-ZáéíóúÁÉÍÓÚñÑ]'`;
+    } else if (cleanLetter.length === 1 && cleanLetter >= 'A' && cleanLetter <= 'Z') {
+      // Construir regex para la letra considerando variaciones con acentos comunes en español
+      let regexPattern = `^[${cleanLetter.toLowerCase()}${cleanLetter.toUpperCase()}`;
+      if (cleanLetter === 'A') regexPattern += 'áÁàÀâÂãÃäÄåÅ';
+      if (cleanLetter === 'E') regexPattern += 'éÉèÈêÊëË';
+      if (cleanLetter === 'I') regexPattern += 'íÍìÌîÎïÏ';
+      if (cleanLetter === 'O') regexPattern += 'óÓòÒôÔõÕöÖ';
+      if (cleanLetter === 'U') regexPattern += 'úÚùÙûÛüÜ';
+      if (cleanLetter === 'N') regexPattern += 'ñÑ';
+      regexPattern += ']';
+      
+      whereClause = sql`artist ~ ${regexPattern}`;
+    } else {
+      whereClause = sql`true`;
+    }
+
+    // Obtener total de artistas únicos para la paginación
+    const totalResult = await this.db
+      .select({
+        count: sql`count(distinct ${songs.artist})`
+      })
+      .from(songs)
+      .where(whereClause);
+    
+    const total = parseInt(totalResult[0]?.count || 0, 10);
+
+    // Obtener la página de artistas únicos
+    const artistsResult = await this.db
+      .select({
+        artist: songs.artist
+      })
+      .from(songs)
+      .where(whereClause)
+      .groupBy(songs.artist)
+      .orderBy(songs.artist)
+      .limit(limit)
+      .offset(offset);
+
+    const artists = artistsResult.map(row => ({
+      name: row.artist,
+      slug: slugify(row.artist)
+    }));
+
+    return { artists, total };
+  }
+
+  /**
    * Obtiene una canción específica por su ID.
    * @param {number} id ID de la canción
    * @returns {Promise<Object|undefined>}

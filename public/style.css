@@ -2,22 +2,22 @@
    SISTEMA DE DISEÑO & TOKENS (CSS VARIABLES)
    ========================================================================== */
 :root {
-  --bg-primary: #121214;
-  --bg-secondary: #18181b;
-  --surface: #202024;
-  --surface-hover: #29292e;
-  --border: #2c2c30;
+  --bg-primary: #f4f4f5;
+  --bg-secondary: #ffffff;
+  --surface: #fafafa;
+  --surface-hover: #f1f1f5;
+  --border: #e4e4e7;
   
-  --text-main: #e1e1e6;
-  --text-muted: #8d8d99;
-  --text-highlight: #ffffff;
+  --text-main: #27272a;
+  --text-muted: #71717a;
+  --text-highlight: #09090b;
   
-  --accent: #8257e5;
-  --accent-light: #9b78ed;
-  --accent-glow: rgba(130, 87, 229, 0.15);
+  --accent: #7c3aed;
+  --accent-light: #6d28d9;
+  --accent-glow: rgba(124, 58, 237, 0.08);
   
-  --chord-color: #ff5e97; /* Rosa neón sumamente legible y visible en fondo oscuro */
-  --chord-bg: rgba(255, 94, 151, 0.08);
+  --chord-color: #db2777; /* Rosa/fucsia oscuro con excelente contraste en fondo claro */
+  --chord-bg: rgba(219, 39, 119, 0.06);
 
   --font-interface: 'Inter', system-ui, -apple-system, sans-serif;
   --font-tab: 'Fira Code', 'JetBrains Mono', Courier, monospace;
@@ -71,7 +71,7 @@ body {
    ========================================================================== */
 .app-header {
   height: var(--header-height);
-  background-color: rgba(24, 24, 27, 0.85);
+  background-color: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border);
   display: flex;
@@ -275,13 +275,13 @@ body {
   font-size: 16px;
   font-family: var(--font-interface);
   transition: all 0.2s ease;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
 .hero-search-box input:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: 0 0 0 4px var(--accent-glow), 0 4px 20px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 0 0 4px var(--accent-glow), 0 4px 20px rgba(0, 0, 0, 0.08);
   background-color: var(--surface-hover);
 }
 
@@ -445,30 +445,31 @@ body {
 }
 
 .songs-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .artist-song-card {
   background-color: var(--surface);
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 16px;
+  padding: 14px 20px;
   cursor: pointer;
   text-decoration: none;
   color: var(--text-main);
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  transition: all 0.2s ease;
+  gap: 16px;
+  transition: all 0.15s ease;
 }
 
 .artist-song-card:hover {
   background-color: var(--surface-hover);
   border-color: var(--accent);
-  transform: translateY(-2px);
+  transform: translateX(4px);
 }
 
 .song-card-title {
@@ -540,7 +541,7 @@ body {
 .versions-table .chord-badge {
   font-family: var(--font-tab);
   font-size: 12px;
-  background-color: rgba(255, 255, 255, 0.05);
+  background-color: rgba(0, 0, 0, 0.03);
   border: 1px solid var(--border);
   color: var(--text-main);
   padding: 2px 6px;
@@ -576,7 +577,7 @@ body {
 }
 
 .contributor-tag {
-  background-color: #323238;
+  background-color: var(--border);
   color: var(--text-muted);
 }
 
@@ -648,7 +649,7 @@ input[type="range"]::-webkit-slider-thumb:hover {
 
 .btn-primary {
   background-color: var(--accent);
-  color: var(--text-highlight);
+  color: #ffffff;
 }
 
 .btn-primary:hover {
@@ -752,6 +753,150 @@ input[type="range"]::-webkit-slider-thumb:hover {
 .tab-content em {
   font-style: normal;
   color: var(--text-muted);
+}
+
+/* ==========================================================================
+   ÍNDICE ALFABÉTICO (ALPHABETICAL INDEX)
+   ========================================================================== */
+.alphabet-nav {
+  margin-top: 32px;
+  width: 100%;
+  max-width: 800px;
+  text-align: center;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+}
+
+.alphabet-nav-title {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  letter-spacing: 0.8px;
+  margin-bottom: 14px;
+}
+
+.alphabet-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
+.alphabet-links a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background-color: var(--surface);
+  color: var(--text-main);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.alphabet-links a:hover {
+  background-color: var(--accent);
+  border-color: var(--accent);
+  color: #ffffff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px var(--accent-glow);
+}
+
+.alphabet-links a.active {
+  background-color: var(--accent);
+  border-color: var(--accent);
+  color: #ffffff;
+}
+
+/* Vista de Índice Alfabético de Artistas */
+.artists-index-container {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 32px;
+  margin-bottom: 28px;
+}
+
+.artists-index-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.artist-index-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 20px;
+  text-decoration: none;
+  color: var(--text-main);
+  font-weight: 500;
+  transition: all 0.15s ease;
+}
+
+.artist-index-card:hover {
+  background-color: var(--surface-hover);
+  border-color: var(--accent);
+  color: var(--text-highlight);
+  transform: translateX(4px);
+}
+
+.artist-index-icon {
+  font-size: 18px;
+}
+
+/* Paginación */
+.pagination-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.pagination-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background-color: var(--bg-secondary);
+  color: var(--text-main);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.pagination-btn:hover:not(.disabled) {
+  background-color: var(--accent);
+  border-color: var(--accent);
+  color: #ffffff;
+}
+
+.pagination-btn.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pagination-info {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 0 12px;
 }
 
 /* ==========================================================================

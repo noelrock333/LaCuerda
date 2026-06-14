@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const viewArtist = document.getElementById('view-artist');
   const viewSong = document.getElementById('view-song');
   const viewVersion = document.getElementById('view-version');
+  const viewAlphabet = document.getElementById('view-alphabet');
   
   // Vista Home
   const homeSearchInput = document.getElementById('home-search-input');
@@ -100,7 +101,14 @@ document.addEventListener('DOMContentLoaded', () => {
     
     const parts = cleanPath.split('/');
     
-    if (parts.length === 1) {
+    if (parts.length === 2 && parts[0] === 'letter') {
+      // Vista Alfabética de Artistas: /letter/:letter
+      const letter = parts[1];
+      const params = new URLSearchParams(window.location.search);
+      const page = parseInt(params.get('page') || 1, 10);
+      showView('alphabet');
+      initAlphabet(letter, page);
+    } else if (parts.length === 1) {
       // 1. Vista de Artista: /:artistSlug
       showView('artist');
       initArtist(parts[0]);
@@ -134,6 +142,7 @@ document.addEventListener('DOMContentLoaded', () => {
     viewArtist.classList.add('hidden');
     viewSong.classList.add('hidden');
     viewVersion.classList.add('hidden');
+    if (viewAlphabet) viewAlphabet.classList.add('hidden');
     
     // Resetear scroll del viewport principal
     mainContentContainer.scrollTop = 0;
@@ -148,6 +157,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (viewName === 'artist') viewArtist.classList.remove('hidden');
       if (viewName === 'song') viewSong.classList.remove('hidden');
       if (viewName === 'version') viewVersion.classList.remove('hidden');
+      if (viewName === 'alphabet' && viewAlphabet) viewAlphabet.classList.remove('hidden');
     }
   }
 
@@ -221,6 +231,81 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 250);
   }
 
+  // --- Vista 5: Índice Alfabético de Artistas (Alphabet) ---
+  async function initAlphabet(letter, page) {
+    const alphabetBreadcrumbLetter = document.getElementById('alphabet-breadcrumb-letter');
+    const alphabetTitleLetter = document.getElementById('alphabet-title-letter');
+    const alphabetArtistsGrid = document.getElementById('alphabet-artists-grid');
+    const alphabetPagination = document.getElementById('alphabet-pagination');
+
+    alphabetBreadcrumbLetter.textContent = letter;
+    alphabetTitleLetter.textContent = letter;
+    alphabetArtistsGrid.innerHTML = '<div class="list-loading">Cargando artistas...</div>';
+    alphabetPagination.innerHTML = '';
+
+    // Resaltar letra activa en la portada (si volvemos a la portada, esto ayuda a mantener sincronía)
+    document.querySelectorAll('.alphabet-links a').forEach(a => {
+      if (a.getAttribute('href') === `/letter/${letter}`) {
+        a.classList.add('active');
+      } else {
+        a.classList.remove('active');
+      }
+    });
+
+    try {
+      const response = await fetch(`/api/artists/by-letter/${letter}?page=${page}`);
+      if (!response.ok) throw new Error('Error al cargar artistas por letra');
+      const data = await response.json();
+
+      document.title = `Artistas con la letra ${letter} - LaCuerda Offline`;
+
+      if (data.artists.length === 0) {
+        alphabetArtistsGrid.innerHTML = '<div class="list-empty">No se encontraron artistas con esta letra</div>';
+      } else {
+        alphabetArtistsGrid.innerHTML = data.artists.map(art => `
+          <a href="/${art.slug}" class="artist-index-card">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <span class="artist-index-icon">👤</span>
+              <span class="artist-index-name">${art.name}</span>
+            </div>
+            <span style="color: var(--text-muted); font-size: 14px;">➔</span>
+          </a>
+        `).join('');
+
+        // Renderizar controles de paginación
+        let paginationHtml = '';
+        
+        // Botón Anterior
+        const prevPage = page - 1;
+        const prevDisabled = page <= 1 ? 'disabled' : '';
+        paginationHtml += `
+          <a href="/letter/${letter}?page=${prevPage}" class="pagination-btn ${prevDisabled}" data-page="${prevPage}">
+            &laquo; Anterior
+          </a>
+        `;
+
+        // Info de página
+        paginationHtml += `
+          <span class="pagination-info">Página ${data.page} de ${data.totalPages}</span>
+        `;
+
+        // Botón Siguiente
+        const nextPage = page + 1;
+        const nextDisabled = page >= data.totalPages ? 'disabled' : '';
+        paginationHtml += `
+          <a href="/letter/${letter}?page=${nextPage}" class="pagination-btn ${nextDisabled}" data-page="${nextPage}">
+            Siguiente &raquo;
+          </a>
+        `;
+
+        alphabetPagination.innerHTML = paginationHtml;
+      }
+    } catch (error) {
+      console.error(error);
+      alphabetArtistsGrid.innerHTML = '<div class="list-empty">Error al cargar la lista de artistas.</div>';
+    }
+  }
+
   // --- Vista 2: Discografía del Artista (Artist) ---
   async function initArtist(artistSlug) {
     artistBreadcrumbName.textContent = 'Cargando...';
@@ -247,10 +332,14 @@ document.addEventListener('DOMContentLoaded', () => {
       } else {
         artistSongsGrid.innerHTML = data.songs.map(song => `
           <a href="/${data.slug}/${song.slug}" class="artist-song-card">
-            <span class="song-card-title">${song.title}</span>
-            <div class="song-card-meta">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <span style="font-size: 16px;">🎵</span>
+              <span class="song-card-title">${song.title}</span>
+            </div>
+            <div class="song-card-meta" style="display: flex; align-items: center; gap: 16px;">
               <span class="tag type-tag">${song.versions[0].type}</span>
               <span class="version-badges-count">${song.versions.length} versiones</span>
+              <span style="color: var(--text-muted); font-size: 14px;">➔</span>
             </div>
           </a>
         `).join('');
