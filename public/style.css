@@ -22,7 +22,6 @@
   --font-interface: 'Inter', system-ui, -apple-system, sans-serif;
   --font-tab: 'Fira Code', 'JetBrains Mono', Courier, monospace;
   
-  --sidebar-width: 320px;
   --header-height: 70px;
   
   /* Tamaños dinámicos controlados por JS */
@@ -68,7 +67,7 @@ body {
 }
 
 /* ==========================================================================
-   ENCABEZADO (HEADER)
+   ENCABEZADO FIJO (HEADER)
    ========================================================================== */
 .app-header {
   height: var(--header-height);
@@ -78,8 +77,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 24px;
-  z-index: 10;
+  padding: 0 40px;
+  z-index: 100;
   position: relative;
 }
 
@@ -87,6 +86,7 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
+  user-select: none;
 }
 
 .logo-icon {
@@ -105,26 +105,24 @@ body {
   font-weight: 400;
 }
 
-.search-container {
+.header-search-container {
   position: relative;
-  width: 400px;
-  max-width: 100%;
+  width: 320px;
 }
 
-.search-container input {
+.header-search-container input {
   width: 100%;
   background-color: var(--surface);
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 10px 16px;
+  padding: 8px 16px;
   padding-right: 40px;
   color: var(--text-main);
-  font-size: 14px;
-  font-family: var(--font-interface);
+  font-size: 13px;
   transition: all 0.2s ease;
 }
 
-.search-container input:focus {
+.header-search-container input:focus {
   outline: none;
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-glow);
@@ -137,199 +135,432 @@ body {
   top: 50%;
   transform: translateY(-50%);
   color: var(--text-muted);
-  font-size: 14px;
+  font-size: 13px;
   pointer-events: none;
 }
 
 /* ==========================================================================
-   DISEÑO CONTENEDOR PRINCIPAL
+   CONTENEDOR DE VISTAS PRINCIPALES (SCROLLABLE)
    ========================================================================== */
-.app-container {
-  display: flex;
+.main-content {
   flex: 1;
-  height: calc(100vh - var(--header-height));
-  overflow: hidden;
-}
-
-/* ==========================================================================
-   SIDEBAR (LISTADO DE CANCIONES)
-   ========================================================================== */
-.sidebar {
-  width: var(--sidebar-width);
-  background-color: var(--bg-secondary);
-  border-right: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.sidebar-header {
-  padding: 20px 24px;
-  border-bottom: 1px solid var(--border);
-}
-
-.sidebar-header h2 {
-  font-size: 14px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
-  color: var(--text-muted);
-}
-
-.songs-list {
-  flex: 1;
-  overflow-y: auto;
-  padding: 12px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-/* Elementos canción (Song card in list) */
-.song-item {
-  background-color: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 14px 16px;
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.song-item:hover {
-  background-color: var(--surface-hover);
-  border-color: var(--accent);
-  transform: translateY(-2px);
-}
-
-.song-item.active {
-  background-color: var(--accent-glow);
-  border-color: var(--accent);
-  box-shadow: inset 0 0 0 1px var(--accent);
-}
-
-.song-item-title {
-  font-weight: 600;
-  font-size: 15px;
-  color: var(--text-highlight);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.song-item-artist {
-  font-size: 13px;
-  color: var(--text-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.song-item-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: 6px;
-}
-
-.tag {
-  font-size: 11px;
-  font-weight: 600;
-  padding: 2px 6px;
-  border-radius: 4px;
-  letter-spacing: 0.3px;
-}
-
-.type-tag {
-  background-color: #323238;
-  color: var(--text-main);
-  text-transform: uppercase;
-}
-
-.version-tag {
-  color: var(--accent-light);
-  background: var(--accent-glow);
-}
-
-.song-item.active .version-tag {
-  background: rgba(130, 87, 229, 0.3);
-}
-
-/* Carga y estados vacíos de lista */
-.list-loading, .list-empty {
-  text-align: center;
-  color: var(--text-muted);
-  padding: 40px 20px;
-  font-size: 14px;
-}
-
-/* ==========================================================================
-   VISUALIZADOR (CONTENEDOR DE LA CANCIÓN)
-   ========================================================================== */
-.viewer-container {
-  flex: 1;
-  height: 100%;
   overflow-y: auto;
   position: relative;
-  background-color: var(--bg-primary);
   display: flex;
   flex-direction: column;
 }
 
-/* Estado de visualizador vacío */
-.empty-state {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 48px;
-}
-
-.empty-state-content {
-  text-align: center;
-  max-width: 460px;
-}
-
-.music-icon {
-  font-size: 56px;
-  display: block;
-  margin-bottom: 20px;
-}
-
-.empty-state-content h2 {
-  font-size: 22px;
-  font-weight: 600;
-  color: var(--text-highlight);
-  margin-bottom: 12px;
-}
-
-.empty-state-content p {
-  color: var(--text-muted);
-  line-height: 1.6;
-  font-size: 14px;
-}
-
-/* Visualizador Activo */
-.song-viewer {
+.view-section {
+  padding: 40px 48px;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  animation: fadeIn 0.2s ease-out;
   display: flex;
   flex-direction: column;
-  padding: 32px 40px;
-  animation: fadeIn 0.3s ease-out;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(5px); }
-  to { opacity: 1; transform: translateY(0); }
 }
 
 .hidden {
   display: none !important;
 }
 
-/* Cabecera de la Canción */
-.song-header {
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ==========================================================================
+   BREADCRUMBS (RUTAS DE NAVEGACIÓN)
+   ========================================================================== */
+.breadcrumbs {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+
+.breadcrumbs a {
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.breadcrumbs a:hover {
+  color: var(--accent-light);
+  text-decoration: underline;
+}
+
+/* Cabeceras de vista */
+.view-header {
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 20px;
+  margin-bottom: 28px;
+}
+
+.view-title {
+  font-size: 30px;
+  font-weight: 700;
+  color: var(--text-highlight);
+  letter-spacing: -0.8px;
+}
+
+.view-subtitle {
+  font-size: 18px;
+  font-weight: 400;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.view-subtitle a {
+  color: var(--accent-light);
+  text-decoration: none;
+}
+
+.view-subtitle a:hover {
+  text-decoration: underline;
+}
+
+/* ==========================================================================
+   VISTA 1: PORTADA (HOME)
+   ========================================================================== */
+#view-home {
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - var(--header-height) - 100px);
+}
+
+.home-hero {
+  text-align: center;
+  max-width: 600px;
+  margin-bottom: 40px;
+}
+
+.hero-logo {
+  font-size: 64px;
+  margin-bottom: 16px;
+}
+
+.home-hero h2 {
+  font-size: 36px;
+  font-weight: 800;
+  color: var(--text-highlight);
+  letter-spacing: -1px;
+  margin-bottom: 8px;
+}
+
+.home-hero h2 span {
+  color: var(--accent);
+}
+
+.home-hero p {
+  color: var(--text-muted);
+  font-size: 15px;
+  line-height: 1.6;
+  margin-bottom: 28px;
+}
+
+.hero-search-box {
+  position: relative;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.hero-search-box input {
+  width: 100%;
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px 20px;
+  padding-right: 52px;
+  color: var(--text-main);
+  font-size: 16px;
+  font-family: var(--font-interface);
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.hero-search-box input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px var(--accent-glow), 0 4px 20px rgba(0, 0, 0, 0.3);
+  background-color: var(--surface-hover);
+}
+
+.search-btn-icon {
+  position: absolute;
+  right: 18px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 18px;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+/* Resultados de búsqueda en 2 columnas */
+.home-search-results {
+  display: flex;
+  width: 100%;
+  max-width: 900px;
+  gap: 40px;
+  margin-top: 20px;
+  animation: fadeIn 0.25s ease-out;
+}
+
+.results-column {
+  flex: 1;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+}
+
+.results-column h3 {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  letter-spacing: 0.8px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 8px;
+}
+
+.results-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+/* Elementos de resultado */
+.result-item {
+  padding: 10px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  text-decoration: none;
+  color: var(--text-main);
+  transition: all 0.15s ease;
+}
+
+.result-item:hover {
+  background-color: var(--surface-hover);
+  border-color: var(--accent);
+  color: var(--text-highlight);
+}
+
+.result-item-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* ==========================================================================
+   VISTA 2: DISCOGRAFÍA DEL ARTISTA (ARTIST)
+   ========================================================================== */
+.artist-layout {
+  display: flex;
+  gap: 40px;
+  align-items: flex-start;
+}
+
+.artist-sidebar {
+  width: 280px;
+  flex-shrink: 0;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.artist-card-info {
+  text-align: center;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 20px;
+}
+
+.artist-avatar {
+  font-size: 40px;
+  margin-bottom: 12px;
+}
+
+.artist-card-info h4 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-highlight);
+  margin-bottom: 4px;
+}
+
+.artist-card-info p {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.artist-top-box h4 {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+  margin-bottom: 12px;
+}
+
+.artist-top-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.artist-top-list li {
+  font-size: 13px;
+  color: var(--text-main);
+  padding: 6px 0;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.artist-top-list li:hover {
+  color: var(--accent-light);
+  text-decoration: underline;
+}
+
+.artist-songs-content {
+  flex: 1;
+}
+
+.artist-songs-content h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-highlight);
+  margin-bottom: 16px;
+}
+
+.songs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.artist-song-card {
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+  cursor: pointer;
+  text-decoration: none;
+  color: var(--text-main);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 12px;
+  transition: all 0.2s ease;
+}
+
+.artist-song-card:hover {
+  background-color: var(--surface-hover);
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}
+
+.song-card-title {
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--text-highlight);
+}
+
+.song-card-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.version-badges-count {
+  font-size: 11px;
+  color: var(--accent-light);
+  background-color: var(--accent-glow);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+/* ==========================================================================
+   VISTA 3: LISTADO DE VERSIONES (SONG)
+   ========================================================================== */
+.versions-table-container {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 24px;
+  overflow-x: auto;
+}
+
+.versions-table-container h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-highlight);
+  margin-bottom: 20px;
+}
+
+.versions-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.versions-table th, .versions-table td {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  font-size: 14px;
+}
+
+.versions-table th {
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+}
+
+.versions-table tbody tr {
+  transition: background-color 0.15s ease;
+}
+
+.versions-table tbody tr:hover {
+  background-color: var(--surface);
+}
+
+.versions-table .chord-badge {
+  font-family: var(--font-tab);
+  font-size: 12px;
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  color: var(--text-main);
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-right: 4px;
+  display: inline-block;
+  margin-bottom: 2px;
+}
+
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 12px;
+  border-radius: 4px;
+  text-decoration: none;
+}
+
+/* ==========================================================================
+   VISTA 4: VISUALIZADOR DE VERSIÓN (VERSION)
+   ========================================================================== */
+.version-header-layout {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
@@ -338,51 +569,18 @@ body {
   margin-bottom: 24px;
 }
 
-.song-meta h2 {
-  font-size: 26px;
-  font-weight: 700;
-  color: var(--text-highlight);
-  letter-spacing: -0.5px;
-  margin-bottom: 6px;
-}
-
-.song-meta h3 {
-  font-size: 18px;
-  font-weight: 500;
-  color: var(--accent-light);
-  margin-bottom: 12px;
-}
-
-.song-tags {
+.version-badges {
   display: flex;
   gap: 8px;
+  margin-top: 10px;
 }
 
-.external-links {
-  display: flex;
-  gap: 12px;
-}
-
-.external-links a {
+.contributor-tag {
+  background-color: #323238;
   color: var(--text-muted);
-  font-size: 13px;
-  text-decoration: none;
-  padding: 6px 12px;
-  border-radius: 6px;
-  border: 1px solid var(--border);
-  background-color: var(--bg-secondary);
-  transition: all 0.2s ease;
 }
 
-.external-links a:hover {
-  color: var(--text-highlight);
-  border-color: var(--accent);
-  background-color: var(--surface);
-}
-
-/* ==========================================================================
-   TOOLBAR (AJUSTES DE AUTOSCROLL / FUENTE)
-   ========================================================================== */
+/* Barra de herramientas */
 .toolbar {
   background-color: var(--surface);
   border: 1px solid var(--border);
@@ -459,7 +657,7 @@ input[type="range"]::-webkit-slider-thumb:hover {
 }
 
 .btn-primary.active {
-  background-color: #e23e57; /* Rojo para simbolizar pausa/stop */
+  background-color: #e23e57;
 }
 
 .btn-icon {
@@ -482,9 +680,7 @@ input[type="range"]::-webkit-slider-thumb:hover {
   text-align: right;
 }
 
-/* ==========================================================================
-   SECCIÓN DE ACORDES RECOMENDADOS
-   ========================================================================== */
+/* Caja de acordes */
 .chords-box {
   background-color: var(--bg-secondary);
   border: 1px solid var(--border);
@@ -520,15 +716,14 @@ input[type="range"]::-webkit-slider-thumb:hover {
   cursor: default;
 }
 
-/* ==========================================================================
-   TAB / CONTENIDO DEL FORMATO
-   ========================================================================== */
+/* Panel de la tablatura */
 .tab-content-container {
   overflow-x: auto;
   background-color: var(--bg-secondary);
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 28px;
+  margin-bottom: 40px;
 }
 
 .tab-content {
@@ -539,7 +734,6 @@ input[type="range"]::-webkit-slider-thumb:hover {
   white-space: pre;
 }
 
-/* Estilo para los acordes inyectados en la tablatura */
 .tab-content a {
   color: var(--chord-color);
   font-weight: 600;
@@ -555,7 +749,6 @@ input[type="range"]::-webkit-slider-thumb:hover {
   color: #ff85ae;
 }
 
-/* Estilo para acordes en diagramas o notas con cursiva */
 .tab-content em {
   font-style: normal;
   color: var(--text-muted);
@@ -565,39 +758,26 @@ input[type="range"]::-webkit-slider-thumb:hover {
    RESPONSIVIDAD (MOBILE & TABLET SUPPORT)
    ========================================================================== */
 @media (max-width: 900px) {
-  .app-container {
-    flex-direction: column;
-  }
-  
-  .sidebar {
-    width: 100%;
-    height: 250px;
-    border-right: none;
-    border-bottom: 1px solid var(--border);
-  }
-  
-  .songs-list {
-    flex-direction: row;
-    overflow-x: auto;
-    overflow-y: hidden;
-    padding: 12px;
-    gap: 12px;
-    height: 100%;
-    align-items: center;
-  }
-  
-  .song-item {
-    width: 220px;
-    flex-shrink: 0;
-    height: calc(100% - 8px);
+  .app-header {
+    padding: 0 20px;
   }
 
-  .sidebar-header {
-    padding: 12px 16px;
-  }
-
-  .song-viewer {
+  .view-section {
     padding: 20px;
+  }
+
+  .home-search-results {
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .artist-layout {
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .artist-sidebar {
+    width: 100%;
   }
 
   .toolbar {
@@ -613,7 +793,7 @@ input[type="range"]::-webkit-slider-thumb:hover {
     margin-top: 8px;
   }
 
-  .search-container {
-    width: 200px;
+  .header-search-container {
+    width: 180px;
   }
 }

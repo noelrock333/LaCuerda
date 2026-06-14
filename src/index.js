@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { ChordsDatabase } from './database.js';
+import { ChordsDatabase, slugify } from './database.js';
 import {
   fetchWithRetry,
   getArchiveSnapshot,
@@ -17,13 +17,12 @@ if (!fs.existsSync(configPath)) {
 }
 const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
 
-const db = new ChordsDatabase(config.dbPath);
-db.init();
+const db = new ChordsDatabase(config.postgres);
 
 console.log('--------------------------------------------------');
 console.log('  DESCARGADOR DE TABLATURAS LACUERDA.NET (WAYBACK) ');
 console.log('--------------------------------------------------');
-console.log(`Base de datos: ${config.dbPath}`);
+console.log(`Base de datos: PostgreSQL (localhost:5432)`);
 console.log(`Retardo entre peticiones: ${config.requestDelayMs}ms`);
 console.log(`Descargar todas las versiones: ${config.downloadAllVersions ? 'Sí' : 'No (Solo la mejor)'}`);
 console.log('--------------------------------------------------');
@@ -38,11 +37,41 @@ if (!fs.existsSync(urlsPath)) {
 const inputUrls = fs.readFileSync(urlsPath, 'utf-8')
   .split(/\r?\n/)
   .map(line => line.trim())
-  .filter(line => line.length > 0 && !line.startsWith('#'));
+  .filter(line => line.length > 0 && !line.startsWith('#'))
+  .map(line => line.split(/\s+/)[0]);
 
 if (inputUrls.length === 0) {
   console.log('No se encontraron URLs activas en urls.txt. Agrega algunas URLs y vuelve a intentarlo.');
   process.exit(0);
+}
+
+// Obtiene el slug de artista y canción desde la URL de origen
+function parseSlugsFromUrl(url) {
+  const cleanUrl = url.replace(/^https?:\/\//i, '').replace(/:\d+/g, '').split('/');
+  if (cleanUrl.length < 3) {
+    return { artistSlug: '', songSlug: '', isVersion: false };
+  }
+  const artistSlug = slugify(cleanUrl[1]);
+  const lastSegment = cleanUrl[2];
+  const isVersion = lastSegment.endsWith('.shtml') || lastSegment.match(/-\d+$/);
+  const songSlug = lastSegment.replace(/-\d+\.shtml$/, '').replace(/\.shtml$/, '');
+  return {
+    artistSlug,
+    songSlug,
+    isVersion
+  };
+}
+
+async function isUrlAlreadyDownloaded(url) {
+  const { artistSlug, songSlug, isVersion } = parseSlugsFromUrl(url);
+  if (!artistSlug || !songSlug) return false;
+  
+  if (isVersion) {
+    return await db.isSongDownloaded(url);
+  } else {
+    // Si es un índice de canción, omitir si ya se descargó al menos una versión
+    return await db.hasSongVersions(artistSlug, songSlug);
+  }
 }
 
 // Inicializar cola de procesamiento
@@ -73,6 +102,7 @@ for (const rawUrl of inputUrls) {
 }
 
 async function processQueue() {
+  await db.init();
   let successCount = 0;
   let skippedCount = 0;
   let errorCount = 0;
@@ -87,7 +117,7 @@ async function processQueue() {
     processedUrls.add(task.sourceUrl);
 
     // Verificar si la versión específica ya está en la base de datos
-    if (db.isSongDownloaded(task.sourceUrl)) {
+    if (await isUrlAlreadyDownloaded(task.sourceUrl)) {
       console.log(`[SALTADO] Ya descargada en DB: ${task.sourceUrl}`);
       skippedCount++;
       continue;
@@ -125,7 +155,7 @@ async function processQueue() {
 
       if (parsed.isVersionPage) {
         // Es una página con la tablatura/acordes completos. Guardarla.
-        db.saveSong(parsed.song);
+        await db.saveSong(parsed.song);
         console.log(`[OK] Guardado: ${parsed.song.artist} - ${parsed.song.title} (Versión ${parsed.song.version_number}) [${parsed.song.type.toUpperCase()}]`);
         successCount++;
       } else {
@@ -151,7 +181,7 @@ async function processQueue() {
 
         // Agregar las versiones seleccionadas a la cola de procesamiento
         for (const target of targets) {
-          if (!processedUrls.has(target.source_url) && !db.isSongDownloaded(target.source_url)) {
+          if (!processedUrls.has(target.source_url) && !(await db.isSongDownloaded(target.source_url))) {
             // Reusar el timestamp del índice para evitar consultar la API de disponibilidad de nuevo
             const archiveVersionUrl = buildArchiveUrl(target.source_url, timestamp);
             queue.push({
@@ -187,6 +217,6 @@ processQueue()
   .catch(err => {
     console.error('Error fatal durante el procesamiento:', err);
   })
-  .finally(() => {
-    db.close();
+  .finally(async () => {
+    await db.close();
   });

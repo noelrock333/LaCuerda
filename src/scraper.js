@@ -50,16 +50,24 @@ export async function fetchWithRetry(url, options = {}, retries = 3) {
  * @returns {Promise<{archiveUrl: string, timestamp: string, originalUrl: string} | null>}
  */
 export async function getArchiveSnapshot(originalUrl, userAgent) {
-  // Intentar primero con la URL de origen
+  // 1. Intentar con la API de disponibilidad (URL original)
   let snapshot = await queryAvailabilityApi(originalUrl, userAgent);
   if (snapshot) return snapshot;
 
-  // Si falla, alternar el protocolo (de https a http o viceversa) para burlar la intermitencia del API
+  // 2. Alternar protocolo en la API de disponibilidad
   const alternatedUrl = originalUrl.startsWith('https://') 
     ? originalUrl.replace(/^https:\/\//i, 'http://')
     : originalUrl.replace(/^http:\/\//i, 'https://');
-    
-  return await queryAvailabilityApi(alternatedUrl, userAgent);
+  snapshot = await queryAvailabilityApi(alternatedUrl, userAgent);
+  if (snapshot) return snapshot;
+
+  // 3. Fallback: Consultar el CDX Server (más preciso y estable) con la URL original
+  snapshot = await queryCdxApi(originalUrl, userAgent);
+  if (snapshot) return snapshot;
+
+  // 4. Alternar protocolo en el CDX Server
+  snapshot = await queryCdxApi(alternatedUrl, userAgent);
+  return snapshot;
 }
 
 /**
@@ -83,6 +91,35 @@ async function queryAvailabilityApi(targetUrl, userAgent) {
     }
   } catch (error) {
     console.warn(`[WARN API WAYBACK] Consulta fallida para ${targetUrl}:`, error.message);
+  }
+  return null;
+}
+
+/**
+ * Consulta la API CDX Server de Wayback Machine para obtener el snapshot exitoso (200) más reciente.
+ */
+async function queryCdxApi(targetUrl, userAgent) {
+  const cdxUrl = `https://web.archive.org/cdx/search/cdx?url=${encodeURIComponent(targetUrl)}&output=json&filter=statuscode:200&limit=-1`;
+  try {
+    const responseText = await fetchWithRetry(cdxUrl, { userAgent }, 2);
+    const data = JSON.parse(responseText);
+    
+    // El CDX Server API retorna un array donde el primer elemento son las cabeceras
+    // y el segundo es la fila con los valores.
+    if (data && data.length >= 2) {
+      const row = data[1];
+      const timestamp = row[1];
+      const original = row[2];
+      
+      const archiveUrl = `https://web.archive.org/web/${timestamp}id_/${original}`;
+      return {
+        archiveUrl,
+        timestamp,
+        originalUrl: original
+      };
+    }
+  } catch (error) {
+    console.warn(`[WARN API CDX] Consulta CDX fallida para ${targetUrl}:`, error.message);
   }
   return null;
 }
@@ -128,11 +165,27 @@ export function parseLaCuerdaPage(html, sourceUrl, archiveUrl) {
 
   if (isVersionPage) {
     // Nombre del artista y título
-    let title = $('#tH1 h1').text().trim();
-    let artist = $('#tH1 h2').text().trim();
+    let title = '';
+    let artist = '';
+
+    // Estilo 2025 (ID tH1, con h1 y h2)
+    if ($('#tH1').length > 0) {
+      title = $('#tH1 h1').text().trim();
+      artist = $('#tH1 h2').text().trim();
+    }
+    // Estilo 2026 (ID t_h1, con enlaces al artista y canción)
+    else if ($('#t_h1').length > 0) {
+      const links = $('#t_h1 a');
+      if (links.length >= 2) {
+        artist = $(links[0]).text().trim();
+        title = $(links[1]).text().trim();
+      } else if (links.length === 1) {
+        artist = $(links[0]).text().trim();
+      }
+    }
 
     // Limpiar títulos
-    if (title.includes(' corregir')) {
+    if (title && title.includes(' corregir')) {
       title = title.replace(' corregir', '').trim();
     }
 
@@ -143,9 +196,10 @@ export function parseLaCuerdaPage(html, sourceUrl, archiveUrl) {
       versionNumber = parseInt(matchVersion[1], 10);
     }
 
-    // Extraer tipo de tablatura (otipo) y acordes desde los scripts
+    // Extraer tipo de tablatura (otipo), acordes y colaborador desde los scripts
     let type = 'chords';
     let chords = '';
+    let contributor = 'Colaborador';
 
     $('script').each((i, el) => {
       const scriptText = $(el).html() || '';
@@ -164,6 +218,12 @@ export function parseLaCuerdaPage(html, sourceUrl, archiveUrl) {
       const matchOdes = scriptText.match(/odes\s*=\s*['"]([^'"]+)['"]/);
       if (matchOdes) {
         chords = matchOdes[1].trim().replace(/@/g, '#');
+      }
+
+      // Buscar colaborador: oclb = 'U:lpetronio;lpetronio'
+      const matchOclb = scriptText.match(/oclb\s*=\s*['"]([^'"]+)['"]/);
+      if (matchOclb) {
+        contributor = matchOclb[1].split(';')[0].replace(/^U:/i, '').trim();
       }
     });
 
@@ -194,12 +254,34 @@ export function parseLaCuerdaPage(html, sourceUrl, archiveUrl) {
 
     // Si falló la extracción de artista/título desde el DOM, intentar con el <title>
     if (!title || !artist) {
-      const pageTitle = $('title').text(); // "TU FALTA DE QUERER, Mon Laferte: Acordes"
+      // Intentar extraer slugs de la URL original para disambiguar
+      const urlParts = sourceUrl.replace(/^https?:\/\//i, '').split('/');
+      const artistSlug = urlParts[1] ? urlParts[1].toLowerCase() : '';
+
+      const pageTitle = $('title').text(); // "TU FALTA DE QUERER, Mon Laferte: Acordes" o "Mon Laferte, Mi buen amor: Letra y Acordes"
       const parts = pageTitle.split(',');
-      if (parts.length > 0) title = parts[0].trim();
-      if (parts[1]) {
-        const subParts = parts[1].split(':');
-        artist = subParts[0].trim();
+      if (parts.length >= 2) {
+        const partA = parts[0].trim();
+        const partB = parts[1].split(':')[0].trim();
+        
+        // Normalizar fragmentos para comparar con el artistSlug
+        const slugA = partA.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+        const slugB = partB.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+        
+        if (slugA === artistSlug || artistSlug.includes(slugA) || slugA.includes(artistSlug)) {
+          artist = partA;
+          title = partB;
+        } else if (slugB === artistSlug || artistSlug.includes(slugB) || slugB.includes(artistSlug)) {
+          artist = partB;
+          title = partA;
+        } else {
+          // Fallback clásico
+          title = partA;
+          artist = partB;
+        }
+      } else {
+        title = pageTitle.split(':')[0].trim();
+        artist = 'Desconocido';
       }
     }
 
@@ -211,6 +293,7 @@ export function parseLaCuerdaPage(html, sourceUrl, archiveUrl) {
         version_number: versionNumber,
         type,
         chords: chords || null,
+        contributor: contributor || 'Colaborador',
         content: content.trim(),
         source_url: sourceUrl,
         archive_url: archiveUrl

@@ -1,6 +1,67 @@
 # Agrega una URL de LaCuerda por línea.
 # Las líneas que comiencen con # serán ignoradas.
-https://acordes.lacuerda.net/mon_laferte/tu_falta_de_querer
+https://web.archive.org/web/20251027162648/https://acordes.lacuerda.net/mon_laferte/tu_falta_de_querer
 https://acordes.lacuerda.net/mon_laferte/amor_completo
 https://acordes.lacuerda.net/mon_laferte/mi_buen_amor
 https://acordes.lacuerda.net/mon_laferte/amarrame
+https://acordes.lacuerda.net/gustavo_cerati/adios.shtml 
+https://acordes.lacuerda.net/gustavo_cerati/crimen-2.shtml
+https://acordes.lacuerda.net/gustavo_cerati/lago_en_el_cielo-3.shtml 
+https://acordes.lacuerda.net/gustavo_cerati/puente-4.shtml 
+https://acordes.lacuerda.net/soda_stereo/profugos.shtml 
+https://acordes.lacuerda.net/gustavo_cerati/vivo-3.shtml
+https://acordes.lacuerda.net/gustavo_cerati/tu_locura-2.shtml
+https://acordes.lacuerda.net/soda_stereo/signos.shtml 
+# Enjambre
+http://acordes.lacuerda.net/enjambre/hematofago.shtml
+http://acordes.lacuerda.net/enjambre/dulce_soledad.shtml
+http://acordes.lacuerda.net/enjambre/somos_ajenos.shtml
+https://acordes.lacuerda.net/enjambre/visita.shtml
+https://acordes.lacuerda.net/enjambre/vida_en_el_espejo.shtml
+https://acordes.lacuerda.net/enjambre/sabado_perpetuo.shtml
+https://acordes.lacuerda.net/enjambre/por_esta_razon.shtml
+#DLD
+https://acordes.lacuerda.net/dld/por_siempre.shtml 
+https://acordes.lacuerda.net/dld/todo_cuenta-2.shtml
+https://acordes.lacuerda.net/dld/un_vicio_caro_es_el_amor.shtml 
+https://acordes.lacuerda.net/dildo/ventura.shtml 
+https://acordes.lacuerda.net/dld/reencuentro.shtml
+#Zoé
+https://acordes.lacuerda.net/zoe/arrullo_de_estrellas.shtml 
+http://acordes.lacuerda.net/zoe/nada-3.shtml
+http://acordes.lacuerda.net/zoe/luna-2.shtml 
+http://acordes.lacuerda.net/zoe/love-2.shtml
+http://acordes.lacuerda.net/zoe/reptilectric-6.shtml (Fazed out)
+http://acordes.lacuerda.net/zoe/sonie-4.shtml
+http://acordes.lacuerda.net/zoe/poli-4.shtml
+http://acordes.lacuerda.net/zoe/no_me_destruyas.shtml
+http://acordes.lacuerda.net/zoe/labios_rotos.shtml
+http://acordes.lacuerda.net/leon_larregui/brillas.shtml 
+http://acordes.lacuerda.net/zoe/peace_and_love-2.shtml
+http://acordes.lacuerda.net/zoe/deja_te_conecto-3.shtml
+http://acordes.lacuerda.net/zoe/paula-3.shtml
+http://acordes.lacuerda.net/zoe/via_lactea-4.shtml
+https://acordes.lacuerda.net/zoe/azul-2.shtml 
+https://acordes.lacuerda.net/zoe/sombras-5.shtml 
+https://acordes.lacuerda.net/leon_larregui/locos-2.shtml 
+https://acordes.lacuerda.net/leon_larregui/como_tu-2.shtml
+https://acordes.lacuerda.net/zoe/karmadame-2.shtml
+https://acordes.lacuerda.net/leon_larregui/souvenir.shtml 
+https://acordes.lacuerda.net/zoe/hielo.shtml 
+# Elefante:
+http://acordes.lacuerda.net/elefante/angel-2.shtml 
+http://acordes.lacuerda.net/elefante/a_donde_vayas.shtml 
+http://acordes.lacuerda.net/elefante/contigo.shtml 
+http://acordes.lacuerda.net/elefante/la_historia_sin_fin.shtml
+http://acordes.lacuerda.net/elefante/de_la_noche_a_la_maniana.shtml
+http://acordes.lacuerda.net/elefante/durmiendo_con_la_luna.shtml 
+http://acordes.lacuerda.net/elefante/asi_es_la_vida.shtml
+http://acordes.lacuerda.net/elefante/la_condenada.shtml 
+http://acordes.lacuerda.net/elefante/el_abandonado-2.shtml
+http://acordes.lacuerda.net/elefante/si_tu_quieres.shtml (falta algo de ritmo)
+http://acordes.lacuerda.net/elefante/la_que_se_fue-2.shtml
+http://acordes.lacuerda.net/elefante/mentirosa.shtml 
+http://acordes.lacuerda.net/elefante/sabor_a_chocolate.shtml 
+https://acordes.lacuerda.net/elefante/la_batalla-3.shtml
+https://acordes.lacuerda.net/elefantes/duele.shtml 
+

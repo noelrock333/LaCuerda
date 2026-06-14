@@ -1,177 +1,416 @@
 document.addEventListener('DOMContentLoaded', () => {
   // --- Elementos del DOM ---
-  const searchInput = document.getElementById('search-input');
-  const songsList = document.getElementById('songs-list');
-  const songsCount = document.getElementById('songs-count');
+  const logoLink = document.getElementById('logo-link');
+  const headerSearchContainer = document.getElementById('header-search-container');
+  const headerSearchInput = document.getElementById('header-search-input');
   
-  const viewerContainer = document.getElementById('viewer-container');
-  const emptyState = document.getElementById('empty-state');
-  const songViewer = document.getElementById('song-viewer');
+  // Vistas
+  const viewHome = document.getElementById('view-home');
+  const viewArtist = document.getElementById('view-artist');
+  const viewSong = document.getElementById('view-song');
+  const viewVersion = document.getElementById('view-version');
   
-  const songTitle = document.getElementById('song-title');
-  const songArtist = document.getElementById('song-artist');
-  const songTypeTag = document.getElementById('song-type-tag');
-  const songVersionTag = document.getElementById('song-version-tag');
+  // Vista Home
+  const homeSearchInput = document.getElementById('home-search-input');
+  const homeSearchResults = document.getElementById('home-search-results');
+  const homeArtistsList = document.getElementById('home-artists-list');
+  const homeSongsList = document.getElementById('home-songs-list');
   
-  const linkOriginal = document.getElementById('link-original');
-  const linkWayback = document.getElementById('link-wayback');
+  // Vista Artista
+  const artistBreadcrumbName = document.getElementById('artist-breadcrumb-name');
+  const artistTitleName = document.getElementById('artist-title-name');
+  const artistCardName = document.getElementById('artist-card-name');
+  const artistTopSongs = document.getElementById('artist-top-songs');
+  const artistSongsGrid = document.getElementById('artist-songs-grid');
+  
+  // Vista Canción / Versiones
+  const songBreadcrumbArtistLink = document.getElementById('song-breadcrumb-artist-link');
+  const songBreadcrumbTitle = document.getElementById('song-breadcrumb-title');
+  const songViewTitle = document.getElementById('song-view-title');
+  const songViewArtist = document.getElementById('song-view-artist');
+  const songVersionsTableBody = document.getElementById('song-versions-table-body');
+  
+  // Vista Versión / Tablatura
+  const versionBreadcrumbArtistLink = document.getElementById('version-breadcrumb-artist-link');
+  const versionBreadcrumbSongLink = document.getElementById('version-breadcrumb-song-link');
+  const versionBreadcrumbNumber = document.getElementById('version-breadcrumb-number');
+  const versionViewTitle = document.getElementById('version-view-title');
+  const versionViewArtist = document.getElementById('version-view-artist');
+  const versionTypeTag = document.getElementById('version-type-tag');
+  const versionContributorTag = document.getElementById('version-contributor-tag');
+  const versionLinkOriginal = document.getElementById('version-link-original');
+  const versionLinkWayback = document.getElementById('version-link-wayback');
   
   const fontSizeSlider = document.getElementById('font-size-slider');
   const fontSizeLabel = document.getElementById('font-size-label');
-  
   const btnAutoscroll = document.getElementById('btn-autoscroll');
   const scrollSpeedSlider = document.getElementById('scroll-speed-slider');
   const scrollSpeedLabel = document.getElementById('scroll-speed-label');
   
-  const songChordsBox = document.getElementById('song-chords-box');
-  const songChordsList = document.getElementById('song-chords-list');
-  const tabContent = document.getElementById('tab-content');
+  const versionChordsBox = document.getElementById('version-chords-box');
+  const versionChordsList = document.getElementById('version-chords-list');
+  const versionTabContent = document.getElementById('version-tab-content');
+  const mainContentContainer = document.querySelector('.main-content');
 
   // --- Estado de la aplicación ---
-  let activeSongId = null;
   let isScrolling = false;
-  let scrollIntervalId = null;
-  let scrollSpeed = 3; // Valor inicial del slider
-  let lastScrollTop = 0;
+  let scrollSpeed = 3;
+  let searchTimeout = null;
 
-  // --- Cargar Catálogo de Canciones ---
-  async function loadSongs(query = '') {
-    try {
-      const response = await fetch(`/api/songs?q=${encodeURIComponent(query)}`);
-      if (!response.ok) throw new Error('Error al cargar catálogo');
-      
-      const songs = await response.json();
-      songsCount.textContent = songs.length;
-      
-      if (songs.length === 0) {
-        songsList.innerHTML = '<div class="list-empty">No se encontraron canciones</div>';
-        return;
+  // --- Enrutador del Cliente (Client-side SPA Router) ---
+  
+  // Interceptar clicks locales para History API
+  document.addEventListener('click', (e) => {
+    const target = e.target.closest('a');
+    if (target && target.getAttribute('href')) {
+      const href = target.getAttribute('href');
+      // Asegurarse de que sea una ruta interna (relativa)
+      if (href.startsWith('/') && !href.startsWith('//') && !target.getAttribute('target')) {
+        e.preventDefault();
+        history.pushState(null, '', href);
+        navigate();
       }
-      
-      songsList.innerHTML = songs.map(song => `
-        <div class="song-item ${song.id === activeSongId ? 'active' : ''}" data-id="${song.id}">
-          <span class="song-item-title">${song.title}</span>
-          <span class="song-item-artist">${song.artist}</span>
-          <div class="song-item-footer">
-            <span class="tag type-tag">${song.type}</span>
-            <span class="tag version-tag">V${song.version_number}</span>
-          </div>
-        </div>
-      `).join('');
-      
-      // Agregar event listeners a cada tarjeta de canción
-      document.querySelectorAll('.song-item').forEach(item => {
-        item.addEventListener('click', () => {
-          const id = parseInt(item.getAttribute('data-id'), 10);
-          selectSong(id);
-        });
-      });
-    } catch (error) {
-      console.error(error);
-      songsList.innerHTML = '<div class="list-empty">Error de conexión con el servidor</div>';
     }
-  }
+  });
 
-  // --- Seleccionar y Mostrar una Canción ---
-  async function selectSong(id) {
+  // Retornar a la portada al hacer clic en el logo
+  logoLink.addEventListener('click', () => {
+    history.pushState(null, '', '/');
+    navigate();
+  });
+
+  // Escuchar cambios de historial (popstate)
+  window.addEventListener('popstate', navigate);
+
+  // Función principal de enrutamiento
+  function navigate() {
+    // Detener autoscroll si está activo en una transición de vista
     if (isScrolling) stopAutoscroll();
+
+    const path = window.location.pathname;
     
-    activeSongId = id;
+    // Normalizar ruta: remover barras inicial y final
+    const cleanPath = path.replace(/^\/+/, '').replace(/\/+$/, '');
     
-    // Resaltar elemento activo en el sidebar
-    document.querySelectorAll('.song-item').forEach(item => {
-      const itemId = parseInt(item.getAttribute('data-id'), 10);
-      if (itemId === id) {
-        item.classList.add('active');
+    if (cleanPath === '') {
+      showView('home');
+      initHome();
+      return;
+    }
+    
+    const parts = cleanPath.split('/');
+    
+    if (parts.length === 1) {
+      // 1. Vista de Artista: /:artistSlug
+      showView('artist');
+      initArtist(parts[0]);
+    } else if (parts.length === 2) {
+      const artistSlug = parts[0];
+      const songOrVersionSlug = parts[1];
+      
+      // Determinar si es una versión específica (.shtml o termina en -<numero>)
+      const isVersion = songOrVersionSlug.endsWith('.shtml') || songOrVersionSlug.match(/-\d+$/);
+      if (isVersion) {
+        // 3. Vista de Versión: /:artistSlug/:song_version
+        showView('version');
+        initVersion(artistSlug, songOrVersionSlug);
       } else {
-        item.classList.remove('active');
+        // 2. Vista de Canción (lista de versiones): /:artistSlug/:songSlug
+        showView('song');
+        initSong(artistSlug, songOrVersionSlug);
       }
-    });
+    } else {
+      // Ruta no reconocida -> redirigir a Home
+      history.replaceState(null, '', '/');
+      showView('home');
+      initHome();
+    }
+  }
+
+  // Activa la sección de la vista indicada y oculta las demás
+  function showView(viewName) {
+    // Ocultar todas las secciones
+    viewHome.classList.add('hidden');
+    viewArtist.classList.add('hidden');
+    viewSong.classList.add('hidden');
+    viewVersion.classList.add('hidden');
+    
+    // Resetear scroll del viewport principal
+    mainContentContainer.scrollTop = 0;
+
+    // Mostrar cabecera de búsqueda en todas las vistas excepto Home
+    if (viewName === 'home') {
+      headerSearchContainer.classList.add('hidden');
+      viewHome.classList.remove('hidden');
+      document.title = "LaCuerda.net - Acordes, Letras y Tablaturas Offline";
+    } else {
+      headerSearchContainer.classList.remove('hidden');
+      if (viewName === 'artist') viewArtist.classList.remove('hidden');
+      if (viewName === 'song') viewSong.classList.remove('hidden');
+      if (viewName === 'version') viewVersion.classList.remove('hidden');
+    }
+  }
+
+  // ==========================================================================
+  // INICIALIZADORES & RENDERIZADORES DE VISTA
+  // ==========================================================================
+
+  // --- Vista 1: Portada (Home) ---
+  function initHome() {
+    homeSearchInput.value = '';
+    homeSearchInput.focus();
+    homeSearchResults.classList.add('hidden');
+    homeArtistsList.innerHTML = '';
+    homeSongsList.innerHTML = '';
+
+    // Manejar búsquedas en tiempo real
+    homeSearchInput.removeEventListener('input', handleHomeSearch);
+    homeSearchInput.addEventListener('input', handleHomeSearch);
+  }
+
+  function handleHomeSearch(e) {
+    const query = e.target.value.trim();
+    clearTimeout(searchTimeout);
+    
+    if (query.length < 2) {
+      homeSearchResults.classList.add('hidden');
+      return;
+    }
+
+    searchTimeout = setTimeout(async () => {
+      try {
+        const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+        if (!response.ok) throw new Error('Error de búsqueda');
+        const data = await response.json();
+        
+        homeSearchResults.classList.remove('hidden');
+        
+        // Renderizar columna de artistas
+        if (data.artists.length === 0) {
+          homeArtistsList.innerHTML = '<div class="list-empty">Sin artistas coincidentes</div>';
+        } else {
+          homeArtistsList.innerHTML = data.artists.map(art => `
+            <a href="/${art.slug}" class="result-item">
+              <span>${art.name}</span>
+              <span class="result-item-sub">Artista ➔</span>
+            </a>
+          `).join('');
+        }
+
+        // Renderizar columna de canciones
+        if (data.songs.length === 0) {
+          homeSongsList.innerHTML = '<div class="list-empty">Sin canciones coincidentes</div>';
+        } else {
+          homeSongsList.innerHTML = data.songs.map(song => {
+            const artistSlug = slugify(song.artist);
+            const songSlug = getSongSlugFromUrl(song.source_url);
+            return `
+              <a href="/${artistSlug}/${songSlug}" class="result-item">
+                <div>
+                  <strong>${song.title}</strong>
+                  <div class="result-item-sub">${song.artist}</div>
+                </div>
+                <span class="result-item-sub">➔</span>
+              </a>
+            `;
+          }).join('');
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    }, 250);
+  }
+
+  // --- Vista 2: Discografía del Artista (Artist) ---
+  async function initArtist(artistSlug) {
+    artistBreadcrumbName.textContent = 'Cargando...';
+    artistTitleName.textContent = 'Cargando Artista...';
+    artistCardName.textContent = '...';
+    artistSongsGrid.innerHTML = '<div class="list-loading">Cargando catálogo del artista...</div>';
+    artistTopSongs.innerHTML = '';
 
     try {
-      const response = await fetch(`/api/songs/${id}`);
-      if (!response.ok) throw new Error('Error al cargar canción');
+      const response = await fetch(`/api/artists/${artistSlug}`);
+      if (!response.ok) throw new Error('Artista no encontrado');
+      const data = await response.json();
+
+      document.title = `Acordes de ${data.artist} - LaCuerda Offline`;
       
-      const song = await response.json();
-      renderSong(song);
+      // Rellenar breadcrumbs y títulos
+      artistBreadcrumbName.textContent = data.artist;
+      artistTitleName.textContent = data.artist;
+      artistCardName.textContent = data.artist;
+
+      // Pinta la columna de canciones
+      if (data.songs.length === 0) {
+        artistSongsGrid.innerHTML = '<div class="list-empty">El catálogo del artista está vacío</div>';
+      } else {
+        artistSongsGrid.innerHTML = data.songs.map(song => `
+          <a href="/${data.slug}/${song.slug}" class="artist-song-card">
+            <span class="song-card-title">${song.title}</span>
+            <div class="song-card-meta">
+              <span class="tag type-tag">${song.versions[0].type}</span>
+              <span class="version-badges-count">${song.versions.length} versiones</span>
+            </div>
+          </a>
+        `).join('');
+
+        // Rellenar TOP CANCIONES (simulado con las primeras 5 canciones)
+        const topSongs = data.songs.slice(0, 5);
+        artistTopSongs.innerHTML = topSongs.map(song => `
+          <li onclick="location.href='/${data.slug}/${song.slug}'">${song.title}</li>
+        `).join('');
+      }
     } catch (error) {
       console.error(error);
-      alert('No se pudo cargar la tablatura seleccionada.');
+      artistTitleName.textContent = 'Error al cargar artista';
+      artistSongsGrid.innerHTML = '<div class="list-empty">No se pudo encontrar el artista en la base de datos local.</div>';
     }
   }
 
-  // --- Renderizar Canción en el Visor ---
-  function renderSong(song) {
-    // Cambiar visibilidad de estados
-    emptyState.classList.add('hidden');
-    songViewer.classList.remove('hidden');
-    
-    // Resetear scroll del visualizador al inicio
-    viewerContainer.scrollTop = 0;
+  // --- Vista 3: Listado de Versiones (Song) ---
+  async function initSong(artistSlug, songSlug) {
+    songBreadcrumbTitle.textContent = 'Cargando...';
+    songViewTitle.textContent = 'Cargando Canción...';
+    songViewArtist.innerHTML = '...';
+    songVersionsTableBody.innerHTML = '<tr><td colspan="5" class="list-loading">Cargando versiones disponibles...</td></tr>';
 
-    // Llenar metadatos
-    songTitle.textContent = song.title;
-    songArtist.textContent = song.artist;
-    songTypeTag.textContent = song.type.toUpperCase();
-    songVersionTag.textContent = `Versión ${song.version_number}`;
-    
-    // Configurar enlaces externos
-    linkOriginal.href = song.source_url;
-    linkWayback.href = song.archive_url;
+    try {
+      const response = await fetch(`/api/songs/${artistSlug}/${songSlug}`);
+      if (!response.ok) throw new Error('Canción no encontrada');
+      const data = await response.json();
 
-    // Renderizar caja de acordes recomendados
-    if (song.chords) {
-      songChordsBox.classList.remove('hidden');
-      const chordList = song.chords.split(/\s+/).filter(c => c.length > 0);
-      songChordsList.innerHTML = chordList.map(chord => `
-        <span class="chord-badge">${chord}</span>
-      `).join('');
-    } else {
-      songChordsBox.classList.add('hidden');
+      document.title = `${data.title} de ${data.artist} - LaCuerda Offline`;
+
+      // Rellenar Breadcrumbs y Títulos
+      songBreadcrumbArtistLink.textContent = data.artist;
+      songBreadcrumbArtistLink.href = `/${artistSlug}`;
+      songBreadcrumbTitle.textContent = data.title;
+      
+      songViewTitle.textContent = data.title;
+      songViewArtist.innerHTML = `de <a href="/${artistSlug}">${data.artist}</a>`;
+
+      // Renderizar tabla de versiones
+      if (data.versions.length === 0) {
+        songVersionsTableBody.innerHTML = '<tr><td colspan="5" class="list-empty">No hay versiones locales guardadas</td></tr>';
+      } else {
+        songVersionsTableBody.innerHTML = data.versions.map(ver => {
+          // Obtener nombre del archivo de la versión para el link (ej: mi_buen_amor-4.shtml)
+          const urlParts = ver.source_url.split('/');
+          const filename = urlParts[urlParts.length - 1]; // "mi_buen_amor-4.shtml"
+          
+          // Formatear acordes
+          const chordBadges = ver.chords 
+            ? ver.chords.split(/\s+/).slice(0, 6).map(c => `<span class="chord-badge">${c}</span>`).join('')
+            : '<span class="text-muted">Ninguno</span>';
+
+          return `
+            <tr>
+              <td><strong>Versión ${ver.version_number}</strong></td>
+              <td><span class="tag type-tag">${ver.type}</span></td>
+              <td>${ver.contributor || 'Colaborador'}</td>
+              <td>${chordBadges} ${ver.chords && ver.chords.split(/\s+/).length > 6 ? '...' : ''}</td>
+              <td>
+                <a href="/${artistSlug}/${filename}" class="btn btn-primary btn-sm">Ver Acordes</a>
+              </td>
+            </tr>
+          `;
+        }).join('');
+      }
+    } catch (error) {
+      console.error(error);
+      songViewTitle.textContent = 'Error al cargar canción';
+      songVersionsTableBody.innerHTML = '<tr><td colspan="5" class="list-empty">No se pudo encontrar el catálogo de la canción.</td></tr>';
     }
-
-    // Inyectar contenido formateando y resaltando los acordes en el pre
-    const highlightedContent = highlightChords(song.content, song.chords);
-    tabContent.innerHTML = highlightedContent;
   }
 
-  // --- Lógica de Resaltado de Acordes ---
+  // --- Vista 4: Visualizador de Acordes (Version) ---
+  async function initVersion(artistSlug, versionSlug) {
+    versionBreadcrumbNumber.textContent = 'Cargando...';
+    versionViewTitle.textContent = 'Cargando Acordes...';
+    versionViewArtist.innerHTML = '...';
+    versionContributorTag.textContent = 'Colaborador: ...';
+    versionTabContent.innerHTML = 'Cargando tablatura...';
+    versionChordsBox.classList.add('hidden');
+
+    try {
+      const response = await fetch(`/api/version/${artistSlug}/${versionSlug}`);
+      if (!response.ok) throw new Error('Versión no encontrada');
+      const song = await response.json();
+
+      document.title = `${song.title} (v${song.version_number}) - ${song.artist}`;
+
+      // Configurar Breadcrumbs y Títulos
+      versionBreadcrumbArtistLink.textContent = song.artist;
+      versionBreadcrumbArtistLink.href = `/${artistSlug}`;
+      
+      const songBaseSlug = getSongSlugFromUrl(song.source_url);
+      versionBreadcrumbSongLink.textContent = song.title;
+      versionBreadcrumbSongLink.href = `/${artistSlug}/${songBaseSlug}`;
+      
+      versionBreadcrumbNumber.textContent = `Versión ${song.version_number}`;
+      
+      versionViewTitle.textContent = song.title;
+      versionViewArtist.innerHTML = `de <a href="/${artistSlug}">${song.artist}</a>`;
+
+      // Tags y enlaces
+      versionTypeTag.textContent = song.type.toUpperCase();
+      versionContributorTag.textContent = `Colaborador: ${song.contributor}`;
+      versionLinkOriginal.href = song.source_url;
+      versionLinkWayback.href = song.archive_url;
+
+      // Caja de acordes
+      if (song.chords) {
+        versionChordsBox.classList.remove('hidden');
+        const chordList = song.chords.split(/\s+/).filter(c => c.length > 0);
+        versionChordsList.innerHTML = chordList.map(chord => `
+          <span class="chord-badge">${chord}</span>
+        `).join('');
+      } else {
+        versionChordsBox.classList.add('hidden');
+      }
+
+      // Inyectar preformateado y resaltar acordes
+      const highlighted = highlightChords(song.content, song.chords);
+      versionTabContent.innerHTML = highlighted;
+
+    } catch (error) {
+      console.error(error);
+      versionViewTitle.textContent = 'Error al cargar tablatura';
+      versionTabContent.innerHTML = 'No se pudo descargar o localizar la versión clásica especificada.';
+    }
+  }
+
+  // --- Lógica de Resaltado de Acordes en la Letra ---
   function highlightChords(content, chordsStr) {
     if (!chordsStr) return escapeHtml(content);
 
     // Separar acordes por espacio y ordenarlos por longitud descendente
-    // (evita que se reemplace 'C' dentro de 'C#m')
     const chordList = chordsStr.split(/\s+/).filter(c => c.length > 0);
     if (chordList.length === 0) return escapeHtml(content);
     
     chordList.sort((a, b) => b.length - a.length);
 
-    // Escapar caracteres regex especiales
     const escapedChords = chordList.map(c => c.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'));
 
     const lines = content.split('\n');
     const highlightedLines = lines.map(line => {
-      // Si la línea es una línea de diagramas de acordes (contiene pipes o guiones seguidos)
-      // la dejamos intacta pero con etiquetas de cursiva para estilo
+      // Líneas de diagramas de trastes las pintamos en cursiva/atenuadas
       if (line.includes('|') || line.includes('--')) {
         return `<em>${escapeHtml(line)}</em>`;
       }
 
-      // Escapar HTML básico de la línea primero
       let escapedLine = escapeHtml(line);
 
-      // Regex para encontrar los acordes:
-      // Deben estar antecedidos por inicio de línea, espacio, guion, pipe o diagonal,
-      // y seguidos por fin de línea, espacio, guion, pipe o diagonal.
+      // Regex para resaltar acordes
       const pattern = new RegExp(`(?<=^|\\s|[-|/])(${escapedChords.join('|')})(?=$|\\s|[-|/])`, 'g');
-      
       return escapedLine.replace(pattern, '<a>$1</a>');
     });
 
     return highlightedLines.join('\n');
   }
 
-  // Utilidad de escape de caracteres HTML
+  // Escapar caracteres HTML para inyección segura
   function escapeHtml(text) {
     return text
       .replace(/&/g, "&amp;")
@@ -181,42 +420,59 @@ document.addEventListener('DOMContentLoaded', () => {
       .replace(/'/g, "&#039;");
   }
 
-  // --- Lógica de Tamaño de Letra ---
+  // ==========================================================================
+  // BUSCADOR EN LA CABECERA (GLOBAL SEARCH)
+  // ==========================================================================
+  headerSearchInput.addEventListener('input', (e) => {
+    const query = e.target.value.trim();
+    clearTimeout(searchTimeout);
+    
+    if (query.length < 2) return;
+
+    searchTimeout = setTimeout(() => {
+      // Redirigir a Home, rellenar el buscador de home con la query, y disparar búsqueda
+      history.pushState(null, '', '/');
+      showView('home');
+      homeSearchInput.value = query;
+      
+      // Simular input event en home
+      const event = new Event('input', { bubbles: true });
+      homeSearchInput.dispatchEvent(event);
+    }, 300);
+  });
+
+  // ==========================================================================
+  // CONTROLES DE VISUALIZADOR (AUTOSCROLL & FONT RESIZER)
+  // ==========================================================================
+
+  // Tamaño de letra
   fontSizeSlider.addEventListener('input', (e) => {
     const size = e.target.value;
     fontSizeLabel.textContent = `${size}px`;
     document.documentElement.style.setProperty('--tab-font-size', `${size}px`);
   });
 
-  // --- Lógica de Autoscroll ---
+  // Autoscroll
   function startAutoscroll() {
     isScrolling = true;
     btnAutoscroll.classList.add('active');
     btnAutoscroll.querySelector('.btn-icon').textContent = '■';
     btnAutoscroll.querySelector('.btn-text').textContent = 'Pausar';
-    
-    lastScrollTop = viewerContainer.scrollTop;
 
-    // Loop de scroll suave usando requestAnimationFrame
     function scrollStep() {
       if (!isScrolling) return;
 
-      // Calcular velocidad de scroll incremental por cuadro
-      // (a mayor velocidad seleccionada, se desplaza más pixeles)
       const pxPerFrame = (scrollSpeed * 0.08); 
-      viewerContainer.scrollTop += pxPerFrame;
+      mainContentContainer.scrollTop += pxPerFrame;
 
-      // Si el scroll manual del usuario cambió significativamente el scrollTop,
-      // o si llegamos al final del scrollable, detenemos el autoscroll
-      const currentScrollTop = viewerContainer.scrollTop;
-      const reachedBottom = viewerContainer.scrollHeight - viewerContainer.clientHeight <= currentScrollTop + 1;
+      const currentScrollTop = mainContentContainer.scrollTop;
+      const reachedBottom = mainContentContainer.scrollHeight - mainContentContainer.clientHeight <= currentScrollTop + 1;
 
       if (reachedBottom) {
         stopAutoscroll();
         return;
       }
 
-      lastScrollTop = currentScrollTop;
       requestAnimationFrame(scrollStep);
     }
 
@@ -243,18 +499,25 @@ document.addEventListener('DOMContentLoaded', () => {
     scrollSpeedLabel.textContent = `x${scrollSpeed}`;
   });
 
-  // --- Buscador Dinámico ---
-  let searchTimeout = null;
-  searchInput.addEventListener('input', (e) => {
-    const query = e.target.value;
-    
-    // Debounce de 300ms para evitar peticiones en cada caracter
-    clearTimeout(searchTimeout);
-    searchTimeout = setTimeout(() => {
-      loadSongs(query);
-    }, 300);
-  });
+  // --- Utilidades de normalización ---
+  
+  // Clonación de slugify en cliente
+  function slugify(text) {
+    return text
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '');
+  }
 
-  // --- Inicialización ---
-  loadSongs();
+  // Obtiene el slug de la canción a partir de la URL
+  function getSongSlugFromUrl(url) {
+    const parts = url.split('/');
+    const lastPart = parts[parts.length - 1];
+    return lastPart.replace(/-\d+\.shtml$/, '').replace(/\.shtml$/, '');
+  }
+
+  // --- Carga Inicial ---
+  navigate();
 });

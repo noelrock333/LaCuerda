@@ -18,8 +18,7 @@ if (!fs.existsSync(configPath)) {
 const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
 
 // Inicializar la base de datos
-const db = new ChordsDatabase(config.dbPath);
-db.init();
+const db = new ChordsDatabase(config.postgres);
 
 // Inicializar Fastify con logs estándar
 const fastify = Fastify({
@@ -32,51 +31,188 @@ fastify.register(fastifyStatic, {
   prefix: '/'
 });
 
-// Endpoint: Obtener listado de canciones con filtro de búsqueda opcional
-// GET /api/songs?q=mon
-fastify.get('/api/songs', async (request, reply) => {
+/**
+ * Helper para obtener el slug de una canción a partir de su URL de origen.
+ * e.g. https://acordes.lacuerda.net/mon_laferte/tu_falta_de_querer-5.shtml -> tu_falta_de_querer
+ */
+function getSongSlug(sourceUrl) {
+  const parts = sourceUrl.split('/');
+  const lastPart = parts[parts.length - 1];
+  return lastPart.replace(/-\d+\.shtml$/, '').replace(/\.shtml$/, '');
+}
+
+// ==========================================================================
+// ENDPOINTS DE LA API REST
+// ==========================================================================
+
+// 1. Buscador en la portada (dos columnas: artistas y canciones)
+// GET /api/search?q=mon
+fastify.get('/api/search', async (request, reply) => {
   const { q } = request.query;
   try {
-    const songs = db.searchSongs(q);
-    return songs;
+    const results = await db.searchArtistsAndSongs(q);
+    return results;
   } catch (error) {
     fastify.log.error(error);
-    reply.status(500).send({ error: 'Error al buscar canciones en la base de datos' });
+    reply.status(500).send({ error: 'Error al buscar en la base de datos' });
   }
 });
 
-// Endpoint: Obtener detalles completos de una canción específica por ID
-// GET /api/songs/1
-fastify.get('/api/songs/:id', async (request, reply) => {
-  const { id } = request.params;
-  const songId = parseInt(id, 10);
-  
-  if (isNaN(songId)) {
-    return reply.status(400).send({ error: 'El ID de la canción debe ser un número válido' });
-  }
-
+// 2. Obtener catálogo agrupado de canciones de un artista por su slug
+// GET /api/artists/mon_laferte
+fastify.get('/api/artists/:artistSlug', async (request, reply) => {
+  const { artistSlug } = request.params;
   try {
-    const song = db.getSongById(songId);
-    if (!song) {
-      return reply.status(404).send({ error: 'Canción no encontrada en la base de datos' });
+    const songs = await db.getSongsByArtistSlug(artistSlug);
+    const artistName = await db.getArtistNameBySlug(artistSlug);
+    
+    if (!artistName) {
+      return reply.status(404).send({ error: 'Artista no encontrado' });
     }
-    return song;
+
+    // Agrupar las versiones físicas de la base de datos bajo un nombre de canción único
+    const songGroups = {};
+    songs.forEach(song => {
+      const slug = getSongSlug(song.source_url);
+      if (!songGroups[slug]) {
+        songGroups[slug] = {
+          title: song.title,
+          slug: slug,
+          versions: []
+        };
+      }
+      songGroups[slug].versions.push({
+        id: song.id,
+        version_number: song.version_number,
+        type: song.type,
+        contributor: song.contributor,
+        chords: song.chords
+      });
+    });
+
+    return {
+      artist: artistName,
+      slug: artistSlug,
+      songs: Object.values(songGroups)
+    };
   } catch (error) {
     fastify.log.error(error);
-    reply.status(500).send({ error: 'Error al recuperar detalles de la canción' });
+    reply.status(500).send({ error: 'Error al recuperar artista' });
   }
 });
 
-// Hook de cierre para liberar la conexión SQLite limpiamente
-fastify.addHook('onClose', (instance, done) => {
+// 3. Obtener listado de versiones de una canción
+// GET /api/songs/mon_laferte/tu_falta_de_querer
+fastify.get('/api/songs/:artistSlug/:songSlug', async (request, reply) => {
+  const { artistSlug, songSlug } = request.params;
+  try {
+    const songs = await db.getSongsByArtistSlug(artistSlug);
+    const artistName = await db.getArtistNameBySlug(artistSlug);
+    
+    if (!artistName) {
+      return reply.status(404).send({ error: 'Artista no encontrado' });
+    }
+
+    // Filtrar canciones de este artista que coincidan con el slug de canción
+    const filtered = songs.filter(song => getSongSlug(song.source_url) === songSlug);
+    if (filtered.length === 0) {
+      return reply.status(404).send({ error: 'Canción no encontrada' });
+    }
+
+    return {
+      artist: artistName,
+      title: filtered[0].title,
+      slug: songSlug,
+      versions: filtered.map(song => ({
+        id: song.id,
+        version_number: song.version_number,
+        type: song.type,
+        contributor: song.contributor,
+        chords: song.chords,
+        source_url: song.source_url,
+        archive_url: song.archive_url
+      }))
+    };
+  } catch (error) {
+    fastify.log.error(error);
+    reply.status(500).send({ error: 'Error al recuperar canción' });
+  }
+});
+
+// 4. Obtener el contenido de una versión específica usando el slug clásico
+// GET /api/version/mon_laferte/tu_falta_de_querer-5.shtml
+// GET /api/version/mon_laferte/tu_falta_de_querer-5
+// GET /api/version/mon_laferte/mi_buen_amor.shtml (version 1 por defecto)
+fastify.get('/api/version/:artistSlug/:versionSlug', async (request, reply) => {
+  const { artistSlug, versionSlug } = request.params;
+  try {
+    const songs = await db.getSongsByArtistSlug(artistSlug);
+    const artistName = await db.getArtistNameBySlug(artistSlug);
+    
+    if (!artistName) {
+      return reply.status(404).send({ error: 'Artista no encontrado' });
+    }
+
+    // Quitar .shtml si existe
+    const cleanSlug = versionSlug.replace(/\.shtml$/i, '');
+
+    // Desglosar nombre base de canción y número de versión
+    let baseSongName = cleanSlug;
+    let versionNumber = 1;
+
+    const match = cleanSlug.match(/^(.+)-(\d+)$/);
+    if (match) {
+      baseSongName = match[1];
+      versionNumber = parseInt(match[2], 10);
+    }
+
+    // Buscar coincidencia exacta
+    const matchSong = songs.find(song => {
+      const slug = getSongSlug(song.source_url);
+      return slug === baseSongName && song.version_number === versionNumber;
+    });
+
+    if (!matchSong) {
+      // Intentar fallback a la primera versión disponible de ese tema
+      const fallbackSong = songs.find(song => getSongSlug(song.source_url) === baseSongName);
+      if (fallbackSong) {
+        return fallbackSong;
+      }
+      return reply.status(404).send({ error: 'Versión no encontrada' });
+    }
+
+    return matchSong;
+  } catch (error) {
+    fastify.log.error(error);
+    reply.status(500).send({ error: 'Error al recuperar versión' });
+  }
+});
+
+// ==========================================================================
+// SPA ROUTER: ENRUTAMIENTO CATCH-ALL
+// ==========================================================================
+
+// Cualquier ruta que no coincida con archivos estáticos o endpoints API
+// servirá el shell 'index.html' para permitir que el router del cliente maneje la ruta.
+fastify.setNotFoundHandler(async (request, reply) => {
+  if (request.url.startsWith('/api/')) {
+    reply.status(404).send({ error: 'Endpoint API no encontrado' });
+    return;
+  }
+  
+  return reply.sendFile('index.html');
+});
+
+// Hook de cierre para liberar la conexión PostgreSQL limpiamente
+fastify.addHook('onClose', async (instance) => {
   fastify.log.info('Cerrando conexión de base de datos...');
-  db.close();
-  done();
+  await db.close();
 });
 
 // Iniciar servidor en el puerto 3000
 const start = async () => {
   try {
+    await db.init();
     await fastify.listen({ port: 3000, host: '0.0.0.0' });
     console.log('\n==================================================');
     console.log('  VISUALIZADOR INICIADO CORRECTAMENTE             ');

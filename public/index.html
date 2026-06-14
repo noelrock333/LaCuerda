@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Archivo Offline LaCuerda - Visualizador de Acordes</title>
-  <!-- Google Fonts: Inter para la interfaz y Fira Code para las tablaturas monoespaciadas -->
+  <title>LaCuerda.net - Acordes, Letras y Tablaturas Offline</title>
+  <!-- Google Fonts: Inter y Fira Code -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -12,105 +12,192 @@
 </head>
 <body>
 
-  <!-- Encabezado principal -->
+  <!-- Cabecera de Navegación Fija -->
   <header class="app-header">
-    <div class="header-logo">
+    <div class="header-logo" id="logo-link" style="cursor: pointer;">
       <span class="logo-icon">🎸</span>
       <h1>LaCuerda <span>Offline</span></h1>
     </div>
-    <div class="search-container">
-      <input type="text" id="search-input" placeholder="Buscar por canción o artista..." autocomplete="off">
+    <!-- Buscador de Cabecera (oculto en la Portada) -->
+    <div class="header-search-container hidden" id="header-search-container">
+      <input type="text" id="header-search-input" placeholder="Buscar artista o canción..." autocomplete="off">
       <span class="search-icon">🔍</span>
     </div>
   </header>
 
-  <!-- Contenedor de la aplicación -->
-  <div class="app-container">
-    
-    <!-- Sidebar: Lista de canciones -->
-    <aside class="sidebar">
-      <div class="sidebar-header">
-        <h2>Canciones Guardadas (<span id="songs-count">0</span>)</h2>
-      </div>
-      <div id="songs-list" class="songs-list">
-        <!-- Las canciones se inyectarán dinámicamente aquí -->
-        <div class="list-loading">Cargando catálogo...</div>
-      </div>
-    </aside>
+  <!-- Contenedor Principal de Vistas -->
+  <main class="main-content" id="app-views">
 
-    <!-- Visualizador principal -->
-    <main class="viewer-container" id="viewer-container">
-      <!-- Estado vacío por defecto -->
-      <div id="empty-state" class="empty-state">
-        <div class="empty-state-content">
-          <span class="music-icon">🎶</span>
-          <h2>Visualizador de Acordes</h2>
-          <p>Selecciona una canción de la lista lateral para comenzar a tocar. El visualizador cuenta con controles de autodesplazamiento y ajuste de tamaño de letra.</p>
+    <!-- ==========================================
+         VISTA 1: PORTADA / BUSCADOR CENTRAL (HOME)
+         ========================================== -->
+    <section id="view-home" class="view-section">
+      <div class="home-hero">
+        <div class="hero-logo">🎸</div>
+        <h2>LaCuerda <span>Offline Archive</span></h2>
+        <p>Busca acordes y tablaturas archivadas de tus artistas favoritos en español.</p>
+        
+        <div class="hero-search-box">
+          <input type="text" id="home-search-input" placeholder="Escribe un artista o canción..." autocomplete="off" autofocus>
+          <span class="search-btn-icon">🔍</span>
         </div>
       </div>
 
-      <!-- Contenedor del contenido (se muestra cuando hay una canción activa) -->
-      <article id="song-viewer" class="song-viewer hidden">
-        
-        <!-- Cabecera de la canción -->
-        <header class="song-header">
-          <div class="song-meta">
-            <h2 id="song-title">Título de la Canción</h2>
-            <h3 id="song-artist">Artista</h3>
-            <div class="song-tags">
-              <span id="song-type-tag" class="tag type-tag">CHORDS</span>
-              <span id="song-version-tag" class="tag version-tag">Versión 1</span>
-            </div>
+      <!-- Resultados de búsqueda en 2 columnas -->
+      <div class="home-search-results hidden" id="home-search-results">
+        <!-- Columna de Artistas -->
+        <div class="results-column">
+          <h3>Artistas Coincidentes</h3>
+          <div class="results-list" id="home-artists-list">
+            <!-- Inyectado dinámicamente -->
           </div>
-          
-          <!-- Enlaces externos -->
-          <div class="external-links">
-            <a id="link-original" href="#" target="_blank" rel="noopener">Sitio Original ↗</a>
-            <a id="link-wayback" href="#" target="_blank" rel="noopener">Wayback Machine ↗</a>
+        </div>
+
+        <!-- Columna de Canciones -->
+        <div class="results-column">
+          <h3>Canciones Coincidentes</h3>
+          <div class="results-list" id="home-songs-list">
+            <!-- Inyectado dinámicamente -->
           </div>
-        </header>
+        </div>
+      </div>
+    </section>
 
-        <!-- Barra de herramientas flotante/superior -->
-        <section class="toolbar">
-          <!-- Control de Tamaño de Letra -->
-          <div class="tool-group">
-            <label for="font-size-slider">Tamaño letra: <span id="font-size-label">16px</span></label>
-            <input type="range" id="font-size-slider" min="12" max="28" value="16" step="1">
+    <!-- ==========================================
+         VISTA 2: DISCOGRAFÍA DEL ARTISTA (ARTIST)
+         ========================================== -->
+    <section id="view-artist" class="view-section hidden">
+      <header class="view-header">
+        <div class="breadcrumbs">
+          <a href="/">Portada</a> &raquo; <span id="artist-breadcrumb-name">Artista</span>
+        </div>
+        <h2 class="view-title" id="artist-title-name">Nombre del Artista</h2>
+      </header>
+
+      <div class="artist-layout">
+        <!-- Columna Izquierda: Panel Informativo / Top Canciones -->
+        <aside class="artist-sidebar">
+          <div class="artist-card-info">
+            <div class="artist-avatar">🎵</div>
+            <h4 id="artist-card-name">Artista</h4>
+            <p>Catálogo local archivado</p>
           </div>
-
-          <!-- Control de Autoscroll -->
-          <div class="tool-group autoscroll-controls">
-            <button id="btn-autoscroll" class="btn btn-primary">
-              <span class="btn-icon">▶</span>
-              <span class="btn-text">Autoscroll</span>
-            </button>
-            <div class="scroll-speed-group">
-              <label for="scroll-speed-slider">Velocidad:</label>
-              <input type="range" id="scroll-speed-slider" min="1" max="10" value="3" step="1">
-              <span id="scroll-speed-label">x3</span>
-            </div>
+          <div class="artist-top-box">
+            <h4>TOP CANCIONES</h4>
+            <ul class="artist-top-list" id="artist-top-songs">
+              <!-- Autocompletado dinámico con las primeras canciones -->
+            </ul>
           </div>
-        </section>
+        </aside>
 
-        <!-- Listado de acordes iniciales recomendados -->
-        <section id="song-chords-box" class="chords-box hidden">
-          <h4>Acordes en esta canción:</h4>
-          <div id="song-chords-list" class="chords-list">
-            <!-- Acordes inyectados -->
+        <!-- Columna Derecha: Catálogo de Canciones -->
+        <div class="artist-songs-content">
+          <h3>Listado de Canciones</h3>
+          <div class="songs-grid" id="artist-songs-grid">
+            <!-- Inyectado dinámicamente -->
           </div>
-        </section>
+        </div>
+      </div>
+    </section>
 
-        <!-- Contenedor del pre-texto de la tablatura -->
-        <section class="tab-content-container">
-          <pre id="tab-content" class="tab-content">
-            <!-- La tablatura formateada se inyectará aquí -->
-          </pre>
-        </section>
+    <!-- ==========================================
+         VISTA 3: LISTADO DE VERSIONES (SONG)
+         ========================================== -->
+    <section id="view-song" class="view-section hidden">
+      <header class="view-header">
+        <div class="breadcrumbs">
+          <a href="/">Portada</a> &raquo; 
+          <a href="#" id="song-breadcrumb-artist-link">Artista</a> &raquo; 
+          <span id="song-breadcrumb-title">Canción</span>
+        </div>
+        <h2 class="view-title" id="song-view-title">Título de la Canción</h2>
+        <h3 class="view-subtitle" id="song-view-artist">por Artista</h3>
+      </header>
 
-      </article>
-    </main>
+      <div class="versions-table-container">
+        <h3>Versiones disponibles en el catálogo local:</h3>
+        <table class="versions-table">
+          <thead>
+            <tr>
+              <th>Versión</th>
+              <th>Tipo</th>
+              <th>Colaborador</th>
+              <th>Acordes utilizados</th>
+              <th>Acción</th>
+            </tr>
+          </thead>
+          <tbody id="song-versions-table-body">
+            <!-- Inyectado dinámicamente -->
+          </tbody>
+        </table>
+      </div>
+    </section>
 
-  </div>
+    <!-- ==========================================
+         VISTA 4: VISUALIZADOR DE LA VERSIÓN (VERSION)
+         ========================================== -->
+    <section id="view-version" class="view-section hidden">
+      <header class="view-header version-header-layout">
+        <div class="version-header-left">
+          <div class="breadcrumbs">
+            <a href="/">Portada</a> &raquo; 
+            <a href="#" id="version-breadcrumb-artist-link">Artista</a> &raquo; 
+            <a href="#" id="version-breadcrumb-song-link">Canción</a> &raquo; 
+            <span id="version-breadcrumb-number">Versión 1</span>
+          </div>
+          <h2 class="view-title" id="version-view-title">Título de la Canción</h2>
+          <h3 class="view-subtitle" id="version-view-artist">por Artista</h3>
+          <div class="version-badges">
+            <span id="version-type-tag" class="tag type-tag">CHORDS</span>
+            <span id="version-contributor-tag" class="tag contributor-tag">Colaborador: lpetronio</span>
+          </div>
+        </div>
+
+        <div class="external-links">
+          <a id="version-link-original" href="#" target="_blank" rel="noopener">Original ↗</a>
+          <a id="version-link-wayback" href="#" target="_blank" rel="noopener">Wayback ↗</a>
+        </div>
+      </header>
+
+      <!-- Barra de herramientas superior -->
+      <div class="toolbar">
+        <!-- Control de Tamaño de Letra -->
+        <div class="tool-group">
+          <label for="font-size-slider">Tamaño letra: <span id="font-size-label">16px</span></label>
+          <input type="range" id="font-size-slider" min="12" max="28" value="16" step="1">
+        </div>
+
+        <!-- Control de Autoscroll -->
+        <div class="tool-group autoscroll-controls">
+          <button id="btn-autoscroll" class="btn btn-primary">
+            <span class="btn-icon">▶</span>
+            <span class="btn-text">Autoscroll</span>
+          </button>
+          <div class="scroll-speed-group">
+            <label for="scroll-speed-slider">Velocidad:</label>
+            <input type="range" id="scroll-speed-slider" min="1" max="10" value="3" step="1">
+            <span id="scroll-speed-label">x3</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Diagramas de acordes recomendados -->
+      <div id="version-chords-box" class="chords-box hidden">
+        <h4>Acordes recomendados en esta versión:</h4>
+        <div id="version-chords-list" class="chords-list">
+          <!-- Acordes inyectados -->
+        </div>
+      </div>
+
+      <!-- Panel de la tablatura preformateada -->
+      <div class="tab-content-container">
+        <pre id="version-tab-content" class="tab-content">
+          <!-- Tablatura inyectada -->
+        </pre>
+      </div>
+    </section>
+
+  </main>
 
   <script src="/app.js"></script>
 </body>
