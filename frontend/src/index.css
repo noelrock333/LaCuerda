@@ -1111,12 +1111,72 @@ input[type="range"]::-webkit-slider-thumb:hover {
   color: var(--text-highlight);
 }
 
+/* Modificar body para soportar layout de carrusel */
 .chord-modal-body {
   padding: 24px;
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
   background-color: var(--surface);
+}
+
+/* Controles del Carrusel de Acordes */
+.chord-carousel-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin-top: 16px;
+  padding: 0 10px;
+}
+
+.chord-carousel-arrow {
+  background: none;
+  border: none;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-main);
+  cursor: pointer;
+  padding: 4px 12px;
+  user-select: none;
+  transition: transform 0.1s ease, color 0.15s ease;
+  line-height: 1;
+}
+
+.chord-carousel-arrow:hover {
+  color: var(--accent);
+  transform: scale(1.2);
+}
+
+.chord-carousel-arrow:active {
+  transform: scale(0.9);
+}
+
+.chord-carousel-dots {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.chord-carousel-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--text-muted);
+  opacity: 0.4;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.chord-carousel-dot:hover {
+  opacity: 0.8;
+}
+
+.chord-carousel-dot.active {
+  background-color: var(--accent);
+  opacity: 1;
+  transform: scale(1.25);
 }
 
 @keyframes scaleIn {

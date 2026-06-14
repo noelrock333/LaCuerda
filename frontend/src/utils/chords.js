@@ -176,3 +176,138 @@ export function getChordFingering(rawName) {
     baseFret
   };
 }
+
+function getNoteIndex(note) {
+  const map = {
+    'C': 0, 'C#': 1, 'Db': 1, 'D': 2, 'D#': 3, 'Eb': 3, 'E': 4,
+    'F': 5, 'F#': 6, 'Gb': 6, 'G': 7, 'G#': 8, 'Ab': 8, 'A': 9,
+    'A#': 10, 'Bb': 10, 'B': 11
+  };
+  return map[note];
+}
+
+function parseChord(name) {
+  const match = name.match(/^([A-G][#b]?)(.*)$/);
+  if (!match) return null;
+  return {
+    root: match[1],
+    quality: match[2] || 'major'
+  };
+}
+
+function generateAlternativeFingerings(name) {
+  const parsed = parseChord(name);
+  if (!parsed) return [];
+  
+  const { root, quality } = parsed;
+  const rootIdx = getNoteIndex(root);
+  if (rootIdx === undefined) return [];
+  
+  const shapes = [];
+  
+  // 1. E-shape (root on string 6)
+  const fretE = (rootIdx - 4 + 12) % 12;
+  if (fretE <= 12) {
+    let frets = null;
+    if (quality === 'major' || quality === 'M') {
+      frets = fretE === 0 ? [0, 2, 2, 1, 0, 0] : [fretE, fretE + 2, fretE + 2, fretE + 1, fretE, fretE];
+    } else if (quality === 'm') {
+      frets = fretE === 0 ? [0, 2, 2, 0, 0, 0] : [fretE, fretE + 2, fretE + 2, fretE, fretE, fretE];
+    } else if (quality === '7') {
+      frets = fretE === 0 ? [0, 2, 0, 1, 0, 0] : [fretE, fretE + 2, fretE, fretE + 1, fretE, fretE];
+    } else if (quality === 'm7') {
+      frets = fretE === 0 ? [0, 2, 0, 0, 0, 0] : [fretE, fretE + 2, fretE, fretE, fretE, fretE];
+    } else if (quality === 'maj7') {
+      frets = fretE === 0 ? [0, 2, 1, 1, 0, 0] : [fretE, fretE + 2, fretE + 1, fretE + 1, fretE, fretE];
+    } else if (quality === 'sus4') {
+      frets = fretE === 0 ? [0, 2, 2, 2, 0, 0] : [fretE, fretE + 2, fretE + 2, fretE + 2, fretE, fretE];
+    }
+    if (frets) shapes.push({ frets });
+  }
+
+  // 2. A-shape (root on string 5)
+  const fretA = (rootIdx - 9 + 12) % 12;
+  if (fretA <= 12) {
+    let frets = null;
+    if (quality === 'major' || quality === 'M') {
+      frets = fretA === 0 ? ['x', 0, 2, 2, 2, 0] : ['x', fretA, fretA + 2, fretA + 2, fretA + 2, fretA];
+    } else if (quality === 'm') {
+      frets = fretA === 0 ? ['x', 0, 2, 2, 1, 0] : ['x', fretA, fretA + 2, fretA + 2, fretA + 1, fretA];
+    } else if (quality === '7') {
+      frets = fretA === 0 ? ['x', 0, 2, 0, 2, 0] : ['x', fretA, fretA + 2, fretA, fretA + 2, fretA];
+    } else if (quality === 'm7') {
+      frets = fretA === 0 ? ['x', 0, 2, 0, 1, 0] : ['x', fretA, fretA + 2, fretA, fretA + 1, fretA];
+    } else if (quality === 'maj7') {
+      frets = fretA === 0 ? ['x', 0, 2, 1, 2, 0] : ['x', fretA, fretA + 2, fretA + 1, fretA + 2, fretA];
+    } else if (quality === 'sus4') {
+      frets = fretA === 0 ? ['x', 0, 2, 2, 3, 0] : ['x', fretA, fretA + 2, fretA + 2, fretA + 3, fretA];
+    } else if (quality === 'sus2') {
+      frets = fretA === 0 ? ['x', 0, 2, 2, 0, 0] : ['x', fretA, fretA + 2, fretA + 2, fretA, fretA];
+    }
+    if (frets) shapes.push({ frets });
+  }
+
+  // 3. D-shape (root on string 4)
+  const fretD = (rootIdx - 2 + 12) % 12;
+  if (fretD <= 12) {
+    let frets = null;
+    if (quality === 'major' || quality === 'M') {
+      frets = fretD === 0 ? ['x', 'x', 0, 2, 3, 2] : ['x', 'x', fretD, fretD + 2, fretD + 3, fretD + 2];
+    } else if (quality === 'm') {
+      frets = fretD === 0 ? ['x', 'x', 0, 2, 3, 1] : ['x', 'x', fretD, fretD + 2, fretD + 3, fretD + 1];
+    } else if (quality === '7') {
+      frets = fretD === 0 ? ['x', 'x', 0, 2, 1, 2] : ['x', 'x', fretD, fretD + 2, fretD + 1, fretD + 2];
+    } else if (quality === 'm7') {
+      frets = fretD === 0 ? ['x', 'x', 0, 2, 1, 1] : ['x', 'x', fretD, fretD + 2, fretD + 1, fretD + 1];
+    } else if (quality === 'maj7') {
+      frets = fretD === 0 ? ['x', 'x', 0, 2, 2, 2] : ['x', 'x', fretD, fretD + 2, fretD + 2, fretD + 2];
+    } else if (quality === 'sus4') {
+      frets = fretD === 0 ? ['x', 'x', 0, 2, 3, 3] : ['x', 'x', fretD, fretD + 2, fretD + 3, fretD + 3];
+    } else if (quality === 'sus2') {
+      frets = fretD === 0 ? ['x', 'x', 0, 2, 3, 0] : ['x', 'x', fretD, fretD + 2, fretD + 3, fretD];
+    }
+    if (frets) shapes.push({ frets });
+  }
+
+  return shapes;
+}
+
+export function getChordFingerings(rawName) {
+  const name = normalizeChordName(rawName);
+  const info = CHORD_DIAGRAMS[name];
+  if (!info) return [];
+
+  const defaultFrets = info.frets;
+  const alternatives = generateAlternativeFingerings(name);
+  
+  const allShapes = [];
+  const areFretsEqual = (arr1, arr2) => {
+    if (arr1.length !== arr2.length) return false;
+    return arr1.every((val, index) => String(val).toLowerCase() === String(arr2[index]).toLowerCase());
+  };
+
+  // Add default shape first
+  allShapes.push(defaultFrets);
+
+  // Add alternative shapes if not already present
+  for (const alt of alternatives) {
+    if (!allShapes.some(existing => areFretsEqual(existing, alt.frets))) {
+      allShapes.push(alt.frets);
+    }
+  }
+
+  // Map to the full fingering objects
+  return allShapes.map(frets => {
+    const activeFrets = frets.filter(f => typeof f === 'number' && f > 0);
+    let baseFret = 1;
+    const maxFret = activeFrets.length > 0 ? Math.max(...activeFrets) : 0;
+    if (maxFret > 4) {
+      baseFret = Math.min(...activeFrets);
+    }
+    return {
+      name,
+      frets,
+      baseFret
+    };
+  });
+}

@@ -2,9 +2,9 @@ import React, { useEffect, useRef } from 'react';
 import { ChordBox } from 'vexchords';
 import { getChordFingering } from '../utils/chords';
 
-export default function GuitarChord({ chordName }) {
+export default function GuitarChord({ chordName, fingering: propFingering }) {
   const containerRef = useRef(null);
-  const fingering = getChordFingering(chordName);
+  const fingering = propFingering || getChordFingering(chordName);
 
   useEffect(() => {
     if (!containerRef.current || !fingering) return;
@@ -71,7 +71,7 @@ export default function GuitarChord({ chordName }) {
     } catch (err) {
       console.error('Failed to draw VexChords:', err);
     }
-  }, [chordName, fingering]);
+  }, [fingering]);
 
   if (!fingering) {
     return (
