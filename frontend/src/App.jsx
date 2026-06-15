@@ -5,6 +5,7 @@ import ArtistView from './components/ArtistView';
 import SongView from './components/SongView';
 import VersionView from './components/VersionView';
 import ChordModal from './components/ChordModal';
+import CatalogView from './components/CatalogView';
 
 function App() {
   const [currentPath, setCurrentPath] = useState(window.location.pathname);
@@ -85,6 +86,9 @@ function App() {
     showHeaderSearch = false;
     const q = queryParams.get('q') || '';
     viewComponent = <HomeView initialQuery={q} />;
+  } else if (cleanPath === 'catalog') {
+    // Catálogo agrupado por artista
+    viewComponent = <CatalogView />;
   } else {
     const parts = cleanPath.split('/');
     if (parts.length === 2 && parts[0] === 'letter') {
@@ -120,9 +124,16 @@ function App() {
     <>
       {/* Cabecera de Navegación Fija */}
       <header className="app-header">
-        <div className="header-logo" onClick={navigateToHome} style={{ cursor: 'pointer' }}>
-          <span className="logo-icon">🎸</span>
-          <h1>LaCuerda <span>Offline</span></h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+          <div className="header-logo" onClick={navigateToHome} style={{ cursor: 'pointer' }}>
+            <span className="logo-icon">🎸</span>
+            <h1>LaCuerda <span>Offline</span></h1>
+          </div>
+          <nav className="header-nav">
+            <a href="/catalog" className={`nav-link ${cleanPath === 'catalog' ? 'active' : ''}`}>
+              Biblioteca
+            </a>
+          </nav>
         </div>
         {/* Buscador de Cabecera (oculto en la Portada) */}
         <div className={`header-search-container ${showHeaderSearch ? '' : 'hidden'}`}>

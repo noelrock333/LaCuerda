@@ -3,7 +3,7 @@ import fastifyStatic from '@fastify/static';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { ChordsDatabase } from './database.js';
+import { ChordsDatabase, slugify } from './database.js';
 
 // Resolver directorios en ES Modules
 const __filename = fileURLToPath(import.meta.url);
@@ -55,6 +55,52 @@ fastify.get('/api/search', async (request, reply) => {
   } catch (error) {
     fastify.log.error(error);
     reply.status(500).send({ error: 'Error al buscar en la base de datos' });
+  }
+});
+
+// 1.2. Obtener catálogo agrupado de todos los artistas y canciones
+// GET /api/songs/grouped-by-artist
+fastify.get('/api/songs/grouped-by-artist', async (request, reply) => {
+  try {
+    const allSongs = await db.getAllSongs();
+    
+    const grouped = {};
+    allSongs.forEach(song => {
+      const artistName = song.artist;
+      const artistSlug = slugify(artistName);
+      const songTitle = song.title;
+      const songSlug = getSongSlug(song.source_url);
+
+      if (!grouped[artistSlug]) {
+        grouped[artistSlug] = {
+          artist: artistName,
+          artistSlug: artistSlug,
+          songs: {}
+        };
+      }
+
+      if (!grouped[artistSlug].songs[songSlug]) {
+        grouped[artistSlug].songs[songSlug] = {
+          title: songTitle,
+          songSlug: songSlug,
+          versionsCount: 0
+        };
+      }
+      grouped[artistSlug].songs[songSlug].versionsCount++;
+    });
+
+    const result = Object.values(grouped).map(artistGroup => {
+      return {
+        artist: artistGroup.artist,
+        artistSlug: artistGroup.artistSlug,
+        songs: Object.values(artistGroup.songs).sort((a, b) => a.title.localeCompare(b.title))
+      };
+    }).sort((a, b) => a.artist.localeCompare(b.artist));
+
+    return result;
+  } catch (error) {
+    fastify.log.error(error);
+    reply.status(500).send({ error: 'Error al recuperar catálogo agrupado' });
   }
 });
 
