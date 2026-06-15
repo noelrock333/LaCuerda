@@ -1,6 +1,6 @@
 import { pgTable, serial, text, integer, timestamp, boolean } from 'drizzle-orm/pg-core';
 import { drizzle } from 'drizzle-orm/node-postgres';
-import { eq, sql, ilike, or } from 'drizzle-orm';
+import { eq, sql, ilike, or, and } from 'drizzle-orm';
 import pg from 'pg';
 
 const { Pool } = pg;
@@ -35,6 +35,26 @@ export const songs = pgTable('songs', {
   archive_url: text('archive_url').notNull(),
   is_best: boolean('is_best').default(false),
   scraped_at: timestamp('scraped_at').defaultNow()
+});
+
+export const users = pgTable('users', {
+  id: serial('id').primaryKey(),
+  username: text('username').notNull().unique(),
+  password: text('password').notNull(),
+  created_at: timestamp('created_at').defaultNow()
+});
+
+export const sessions = pgTable('sessions', {
+  token: text('token').primaryKey(),
+  user_id: integer('user_id').notNull(),
+  created_at: timestamp('created_at').defaultNow()
+});
+
+export const favorites = pgTable('favorites', {
+  id: serial('id').primaryKey(),
+  user_id: integer('user_id').notNull(),
+  song_id: integer('song_id').notNull(),
+  created_at: timestamp('created_at').defaultNow()
 });
 
 export class ChordsDatabase {
@@ -83,6 +103,36 @@ export class ChordsDatabase {
     // Añadir columna is_best si no existe (migración en caliente)
     await this.db.execute(sql`
       ALTER TABLE songs ADD COLUMN IF NOT EXISTS is_best BOOLEAN DEFAULT FALSE
+    `);
+
+    // Crear tabla users
+    await this.db.execute(sql`
+      CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        username VARCHAR(255) UNIQUE NOT NULL,
+        password VARCHAR(255) NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Crear tabla sessions
+    await this.db.execute(sql`
+      CREATE TABLE IF NOT EXISTS sessions (
+        token VARCHAR(255) PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Crear tabla favorites
+    await this.db.execute(sql`
+      CREATE TABLE IF NOT EXISTS favorites (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        song_id INTEGER NOT NULL REFERENCES songs(id) ON DELETE CASCADE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT unique_user_song UNIQUE (user_id, song_id)
+      )
     `);
   }
 
@@ -317,6 +367,117 @@ export class ChordsDatabase {
       .limit(1);
     
     return result[0];
+  }
+
+  /**
+   * Busca un usuario por su nickname.
+   */
+  async getUserByUsername(username) {
+    const result = await this.db
+      .select()
+      .from(users)
+      .where(eq(users.username, username))
+      .limit(1);
+    return result[0];
+  }
+
+  /**
+   * Crea un usuario nuevo en la base de datos.
+   */
+  async createUser(username, hashedPassword) {
+    const result = await this.db
+      .insert(users)
+      .values({ username, password: hashedPassword })
+      .returning({ id: users.id, username: users.username });
+    return result[0];
+  }
+
+  /**
+   * Crea una sesión activa de usuario.
+   */
+  async createSession(token, userId) {
+    await this.db
+      .insert(sessions)
+      .values({ token, user_id: userId });
+  }
+
+  /**
+   * Obtiene la sesión a partir del token.
+   */
+  async getSession(token) {
+    const result = await this.db
+      .select()
+      .from(sessions)
+      .where(eq(sessions.token, token))
+      .limit(1);
+    return result[0];
+  }
+
+  /**
+   * Elimina una sesión (logout).
+   */
+  async deleteSession(token) {
+    await this.db
+      .delete(sessions)
+      .where(eq(sessions.token, token));
+  }
+
+  /**
+   * Obtiene todas las canciones/versiones favoritas de un usuario.
+   */
+  async getFavorites(userId) {
+    return await this.db
+      .select({
+        id: songs.id,
+        artist: songs.artist,
+        title: songs.title,
+        version_number: songs.version_number,
+        type: songs.type,
+        contributor: songs.contributor,
+        source_url: songs.source_url,
+        archive_url: songs.archive_url,
+        is_best: songs.is_best
+      })
+      .from(favorites)
+      .innerJoin(songs, eq(favorites.song_id, songs.id))
+      .where(eq(favorites.user_id, userId))
+      .orderBy(songs.artist, songs.title, songs.version_number);
+  }
+
+  /**
+   * Agrega una versión a favoritos.
+   */
+  async addFavorite(userId, songId) {
+    try {
+      await this.db
+        .insert(favorites)
+        .values({ user_id: userId, song_id: songId });
+    } catch (e) {
+      if (e.code !== '23505') {
+        throw e;
+      }
+    }
+  }
+
+  /**
+   * Elimina una versión de favoritos.
+   */
+  async removeFavorite(userId, songId) {
+    await this.db
+      .delete(favorites)
+      .where(and(eq(favorites.user_id, userId), eq(favorites.song_id, songId)));
+  }
+
+  /**
+   * Comprueba si una versión ya es favorita del usuario.
+   */
+  async isFavorite(userId, songId) {
+    const result = await this.db
+      .select({ id: favorites.id })
+      .from(favorites)
+      .where(and(eq(favorites.user_id, userId), eq(favorites.song_id, songId)))
+      .limit(1);
+    return result.length > 0;
   }
 
   /**

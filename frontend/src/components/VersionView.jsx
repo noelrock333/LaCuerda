@@ -71,6 +71,7 @@ export default function VersionView({ artistSlug, versionSlug, onChordClick }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [fontSize, setFontSize] = useState(16);
+  const [isFavorite, setIsFavorite] = useState(false);
 
   // Sidebar states
   const [versionsList, setVersionsList] = useState([]);
@@ -100,6 +101,21 @@ export default function VersionView({ artistSlug, versionSlug, onChordClick }) {
           setSong(json);
           setLoading(false);
           document.title = `${json.title} (v${json.version_number}) - ${json.artist}`;
+
+          // Consultar estado de favorito si está autenticado
+          const token = localStorage.getItem('token');
+          if (token && json.id) {
+            fetch(`/api/favorites/status/${json.id}`, {
+              headers: {
+                'Authorization': `Bearer ${token}`
+              }
+            })
+              .then(res => res.ok ? res.json() : { isFavorite: false })
+              .then(data => {
+                if (active) setIsFavorite(data.isFavorite);
+              })
+              .catch(err => console.error(err));
+          }
 
           const songBaseSlug = getSongSlugFromUrl(json.source_url);
 
@@ -243,6 +259,31 @@ export default function VersionView({ artistSlug, versionSlug, onChordClick }) {
       </section>
     );
   }
+
+  const toggleFavorite = async () => {
+    const token = localStorage.getItem('token');
+    if (!token || !song) return;
+
+    const method = isFavorite ? 'DELETE' : 'POST';
+    const url = isFavorite ? `/api/favorites/${song.id}` : '/api/favorites';
+
+    try {
+      const res = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: isFavorite ? undefined : JSON.stringify({ song_id: song.id })
+      });
+
+      if (res.ok) {
+        setIsFavorite(!isFavorite);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const songBaseSlug = getSongSlugFromUrl(song.source_url);
   const chordList = song.chords
@@ -410,7 +451,20 @@ export default function VersionView({ artistSlug, versionSlug, onChordClick }) {
                 <a href={`/${artistSlug}/${songBaseSlug}`}>{song.title}</a> &raquo;{' '}
                 <span>Versión {song.version_number}</span>
               </div>
-              <h2 className="view-title" id="version-view-title">{song.title}</h2>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <h2 className="view-title" id="version-view-title">{song.title}</h2>
+                {localStorage.getItem('token') && (
+                  <button
+                    className={`favorite-heart-btn ${isFavorite ? 'is-fav' : ''}`}
+                    onClick={toggleFavorite}
+                    title={isFavorite ? 'Quitar de favoritos' : 'Marcar como favorito'}
+                  >
+                    <svg viewBox="0 0 24 24">
+                      <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                    </svg>
+                  </button>
+                )}
+              </div>
               <h3 className="view-subtitle" id="version-view-artist">
                 por <a href={`/${artistSlug}`}>{song.artist}</a>
               </h3>

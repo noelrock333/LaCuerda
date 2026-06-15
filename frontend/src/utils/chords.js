@@ -86,6 +86,36 @@ export const CHORD_DIAGRAMS = {
 };
 
 /**
+ * Traduce un acorde en notación en español (Do, Re, Mi, Fa, Sol, La, Si) a inglés (C, D, E, F, G, A, B)
+ * @param {string} name Nombre del acorde
+ * @returns {string} Nombre traducido
+ */
+export function translateSpanishToEnglish(name) {
+  if (!name) return '';
+  
+  const spanishToEnglishMap = {
+    'do': 'C',
+    're': 'D',
+    'mi': 'E',
+    'fa': 'F',
+    'sol': 'G',
+    'la': 'A',
+    'si': 'B'
+  };
+  
+  const match = name.match(/^(do|re|mi|fa|sol|la|si)(#|b)?(.*)$/i);
+  if (match) {
+    const root = match[1].toLowerCase();
+    const accidental = match[2] || '';
+    const suffix = match[3] || '';
+    const englishRoot = spanishToEnglishMap[root];
+    return `${englishRoot}${accidental}${suffix}`;
+  }
+  
+  return name;
+}
+
+/**
  * Normaliza un acorde quitándole partes de bajo invertidas (ej: C/G -> C)
  * y simplificando variaciones no soportadas al acorde base más cercano.
  * @param {string} rawName Nombre original del acorde
@@ -96,6 +126,9 @@ export function normalizeChordName(rawName) {
   
   // Limpiar espacios y quitar bajos de acordes invertidos
   let name = rawName.trim().split('/')[0];
+  
+  // Traducir de español a inglés (ej: SOL -> G, LAm -> Am, MI7 -> E7)
+  name = translateSpanishToEnglish(name);
   
   // Si está en el diccionario, usarlo directo
   if (CHORD_DIAGRAMS[name]) return name;

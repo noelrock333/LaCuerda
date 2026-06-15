@@ -6,12 +6,63 @@ import SongView from './components/SongView';
 import VersionView from './components/VersionView';
 import ChordModal from './components/ChordModal';
 import CatalogView from './components/CatalogView';
+import AuthModal from './components/AuthModal';
+import FavoritesView from './components/FavoritesView';
 
 function App() {
   const [currentPath, setCurrentPath] = useState(window.location.pathname);
   const [searchParams, setSearchParams] = useState(window.location.search);
   const [activeChord, setActiveChord] = useState(null);
   const [headerQuery, setHeaderQuery] = useState('');
+  const [user, setUser] = useState(null);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+
+  // Validar sesión activa al cargar
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      fetch('/api/auth/me', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+        .then(res => {
+          if (res.ok) return res.json();
+          localStorage.removeItem('token');
+          throw new Error('Sesión expirada');
+        })
+        .then(data => {
+          setUser(data.user);
+        })
+        .catch(err => {
+          console.error(err);
+        });
+    }
+  }, []);
+
+  const handleAuthSuccess = (data) => {
+    localStorage.setItem('token', data.token);
+    setUser(data.user);
+  };
+
+  const handleLogout = async () => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        await fetch('/api/auth/logout', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    localStorage.removeItem('token');
+    setUser(null);
+    navigateToHome();
+  };
 
   // Handle browser back/forward buttons
   useEffect(() => {
@@ -89,6 +140,9 @@ function App() {
   } else if (cleanPath === 'catalog') {
     // Catálogo agrupado por artista
     viewComponent = <CatalogView />;
+  } else if (cleanPath === 'favorites') {
+    // Favoritos del usuario
+    viewComponent = <FavoritesView />;
   } else {
     const parts = cleanPath.split('/');
     if (parts.length === 2 && parts[0] === 'letter') {
@@ -133,18 +187,43 @@ function App() {
             <a href="/catalog" className={`nav-link ${cleanPath === 'catalog' ? 'active' : ''}`}>
               Biblioteca
             </a>
+            {user && (
+              <a href="/favorites" className={`nav-link ${cleanPath === 'favorites' ? 'active' : ''}`} style={{ color: 'var(--chord-color)', fontWeight: '600' }}>
+                Favoritos ❤️
+              </a>
+            )}
           </nav>
         </div>
-        {/* Buscador de Cabecera (oculto en la Portada) */}
-        <div className={`header-search-container ${showHeaderSearch ? '' : 'hidden'}`}>
-          <input
-            type="text"
-            placeholder="Buscar artista o canción..."
-            autoComplete="off"
-            value={headerQuery}
-            onChange={handleHeaderSearchInput}
-          />
-          <span className="search-icon">🔍</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          {/* Buscador de Cabecera (oculto en la Portada) */}
+          <div className={`header-search-container ${showHeaderSearch ? '' : 'hidden'}`}>
+            <input
+              type="text"
+              placeholder="Buscar artista o canción..."
+              autoComplete="off"
+              value={headerQuery}
+              onChange={handleHeaderSearchInput}
+            />
+            <span className="search-icon">🔍</span>
+          </div>
+
+          {/* Sección de usuario */}
+          <div className="header-user-section">
+            {user ? (
+              <div className="user-profile-menu">
+                <span className="user-nickname-pill">
+                  👤 {user.username}
+                </span>
+                <button onClick={handleLogout} className="logout-btn">
+                  Cerrar Sesión
+                </button>
+              </div>
+            ) : (
+              <button onClick={() => setIsAuthModalOpen(true)} className="login-btn">
+                Acceder
+              </button>
+            )}
+          </div>
         </div>
       </header>
 
@@ -157,6 +236,13 @@ function App() {
       <ChordModal
         chordName={activeChord}
         onClose={() => setActiveChord(null)}
+      />
+
+      {/* Modal de Autenticación */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        onSuccess={handleAuthSuccess}
       />
     </>
   );

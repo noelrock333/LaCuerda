@@ -3,6 +3,8 @@ import fastifyStatic from '@fastify/static';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import crypto from 'crypto';
+import { sql } from 'drizzle-orm';
 import { ChordsDatabase, slugify } from './database.js';
 
 // Resolver directorios en ES Modules
@@ -257,6 +259,205 @@ fastify.get('/api/version/:artistSlug/:versionSlug', async (request, reply) => {
   } catch (error) {
     fastify.log.error(error);
     reply.status(500).send({ error: 'Error al recuperar versión' });
+  }
+});
+
+// ==========================================================================
+// MÉTODOS DE SEGURIDAD & AUTENTICACIÓN
+// ==========================================================================
+
+function hashPassword(password) {
+  const salt = crypto.randomBytes(16).toString('hex');
+  const hash = crypto.scryptSync(password, salt, 64).toString('hex');
+  return `${salt}:${hash}`;
+}
+
+function verifyPassword(password, storedHash) {
+  const [salt, hash] = storedHash.split(':');
+  const verifyHash = crypto.scryptSync(password, salt, 64).toString('hex');
+  return crypto.timingSafeEqual(Buffer.from(hash, 'hex'), Buffer.from(verifyHash, 'hex'));
+}
+
+async function authenticate(request, reply) {
+  const authHeader = request.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    reply.status(401).send({ error: 'No autorizado: falta token' });
+    throw new Error('Unauthorized');
+  }
+
+  const token = authHeader.substring(7);
+  const session = await db.getSession(token);
+  if (!session) {
+    reply.status(401).send({ error: 'No autorizado: sesión inválida o expirada' });
+    throw new Error('Unauthorized');
+  }
+
+  return session.user_id;
+}
+
+// ==========================================================================
+// ENDPOINTS DE AUTENTICACIÓN
+// ==========================================================================
+
+fastify.post('/api/auth/register', async (request, reply) => {
+  const { username, password } = request.body || {};
+  if (!username || !password) {
+    return reply.status(400).send({ error: 'Usuario y contraseña son requeridos' });
+  }
+
+  const cleanUsername = username.trim();
+  if (cleanUsername.length < 3) {
+    return reply.status(400).send({ error: 'El nombre de usuario debe tener al menos 3 caracteres' });
+  }
+
+  try {
+    const existingUser = await db.getUserByUsername(cleanUsername);
+    if (existingUser) {
+      return reply.status(400).send({ error: 'El nombre de usuario ya está registrado' });
+    }
+
+    const passwordHash = hashPassword(password);
+    const user = await db.createUser(cleanUsername, passwordHash);
+
+    // Crear sesión automática al registrarse
+    const token = crypto.randomUUID();
+    await db.createSession(token, user.id);
+
+    return { token, user: { id: user.id, username: user.username } };
+  } catch (error) {
+    fastify.log.error(error);
+    return reply.status(500).send({ error: 'Error al registrar el usuario' });
+  }
+});
+
+fastify.post('/api/auth/login', async (request, reply) => {
+  const { username, password } = request.body || {};
+  if (!username || !password) {
+    return reply.status(400).send({ error: 'Usuario y contraseña son requeridos' });
+  }
+
+  try {
+    const user = await db.getUserByUsername(username.trim());
+    if (!user) {
+      return reply.status(400).send({ error: 'Credenciales inválidas' });
+    }
+
+    const isMatch = verifyPassword(password, user.password);
+    if (!isMatch) {
+      return reply.status(400).send({ error: 'Credenciales inválidas' });
+    }
+
+    const token = crypto.randomUUID();
+    await db.createSession(token, user.id);
+
+    return { token, user: { id: user.id, username: user.username } };
+  } catch (error) {
+    fastify.log.error(error);
+    return reply.status(500).send({ error: 'Error al iniciar sesión' });
+  }
+});
+
+fastify.post('/api/auth/logout', async (request, reply) => {
+  const authHeader = request.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.substring(7);
+    try {
+      await db.deleteSession(token);
+    } catch (error) {
+      fastify.log.error(error);
+    }
+  }
+  return { success: true };
+});
+
+fastify.get('/api/auth/me', async (request, reply) => {
+  try {
+    const userId = await authenticate(request, reply);
+    const result = await db.db.execute(sql`SELECT id, username FROM users WHERE id = ${userId} LIMIT 1`);
+    const user = result.rows[0];
+    if (!user) {
+      return reply.status(404).send({ error: 'Usuario no encontrado' });
+    }
+    return { user: { id: user.id, username: user.username } };
+  } catch (error) {
+    if (error.message === 'Unauthorized') return;
+    fastify.log.error(error);
+    return reply.status(500).send({ error: 'Error al validar sesión' });
+  }
+});
+
+// ==========================================================================
+// ENDPOINTS DE FAVORITOS
+// ==========================================================================
+
+fastify.get('/api/favorites', async (request, reply) => {
+  try {
+    const userId = await authenticate(request, reply);
+    const list = await db.getFavorites(userId);
+    return list;
+  } catch (error) {
+    if (error.message === 'Unauthorized') return;
+    fastify.log.error(error);
+    return reply.status(500).send({ error: 'Error al recuperar favoritos' });
+  }
+});
+
+fastify.post('/api/favorites', async (request, reply) => {
+  const { song_id } = request.body || {};
+  if (!song_id) {
+    return reply.status(400).send({ error: 'ID de versión (song_id) es requerido' });
+  }
+
+  try {
+    const userId = await authenticate(request, reply);
+    await db.addFavorite(userId, song_id);
+    return { success: true };
+  } catch (error) {
+    if (error.message === 'Unauthorized') return;
+    fastify.log.error(error);
+    return reply.status(500).send({ error: 'Error al agregar favorito' });
+  }
+});
+
+fastify.delete('/api/favorites/:songId', async (request, reply) => {
+  const songId = parseInt(request.params.songId, 10);
+  if (isNaN(songId)) {
+    return reply.status(400).send({ error: 'ID de versión inválido' });
+  }
+
+  try {
+    const userId = await authenticate(request, reply);
+    await db.removeFavorite(userId, songId);
+    return { success: true };
+  } catch (error) {
+    if (error.message === 'Unauthorized') return;
+    fastify.log.error(error);
+    return reply.status(500).send({ error: 'Error al eliminar favorito' });
+  }
+});
+
+fastify.get('/api/favorites/status/:songId', async (request, reply) => {
+  const songId = parseInt(request.params.songId, 10);
+  if (isNaN(songId)) {
+    return reply.status(400).send({ error: 'ID de versión inválido' });
+  }
+
+  const authHeader = request.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return { isFavorite: false };
+  }
+
+  const token = authHeader.substring(7);
+  try {
+    const session = await db.getSession(token);
+    if (!session) {
+      return { isFavorite: false };
+    }
+    const isFav = await db.isFavorite(session.user_id, songId);
+    return { isFavorite: isFav };
+  } catch (error) {
+    fastify.log.error(error);
+    return { isFavorite: false };
   }
 });
 
