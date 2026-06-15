@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import GuitarChord from './GuitarChord';
 
 const HISTORY_KEY = 'lacuerda_view_history';
 
@@ -483,18 +484,21 @@ export default function VersionView({ artistSlug, versionSlug, onChordClick }) {
 
           {/* Diagramas de acordes recomendados */}
           {chordList.length > 0 && (
-            <div id="version-chords-box" className="chords-box">
+            <div id="version-chords-box" className="version-chords-diagrams-container">
               <h4>Acordes recomendados en esta versión:</h4>
-              <div id="version-chords-list" className="chords-list">
+              <div id="version-chords-list" className="chords-diagrams-list">
                 {chordList.map((chord, index) => (
-                  <span
+                  <div
                     key={`${chord}-${index}`}
-                    className="chord-badge"
-                    style={{ cursor: 'pointer' }}
+                    className="chord-diagram-card"
                     onClick={() => onChordClick && onChordClick(chord)}
+                    title={`Ver variaciones de ${chord}`}
                   >
-                    {chord}
-                  </span>
+                    <span className="chord-diagram-name">{chord}</span>
+                    <div className="chord-diagram-svg-wrap">
+                      <GuitarChord chordName={chord} />
+                    </div>
+                  </div>
                 ))}
               </div>
             </div>
