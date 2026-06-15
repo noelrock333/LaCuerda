@@ -336,3 +336,82 @@ export function parseLaCuerdaPage(html, sourceUrl, archiveUrl) {
 
   throw new Error('La estructura de la página de LaCuerda no es compatible con el parser.');
 }
+
+/**
+ * Parsea una página de índice alfabético de LaCuerda.net (ej: /tabs/z/index0.html).
+ * Extrae los links a páginas de artistas y detecta si hay una página siguiente.
+ *
+ * @param {string} html HTML de la página de índice
+ * @param {string} baseUrl URL base para resolver hrefs relativos (ej: https://acordes.lacuerda.net/tabs/z/index0.html)
+ * @returns {{ artists: Array<{url: string, name: string}>, nextPageUrl: string|null }}
+ */
+export function parseAlphaIndexPage(html, baseUrl) {
+  const $ = cheerio.load(html);
+  const artists = [];
+
+  // La lista principal de artistas está en #i_main
+  $('#i_main li').each((i, el) => {
+    const $a = $(el).find('a').first();
+    const href = $a.attr('href');
+    if (!href) return;
+
+    // Extraer el nombre del artista: remover "Acordes de " y el sufijo de número de canciones
+    let rawText = $a.text().trim();
+    rawText = rawText.replace(/^Acordes de\s+/i, '').trim();
+
+    // La URL del artista es relativa (ej: /zabala_y_barrera/ o zabala_y_barrera)
+    const resolvedUrl = new URL(href, baseUrl).href;
+
+    artists.push({ url: resolvedUrl, name: rawText });
+  });
+
+  // Detectar paginación: buscar link a la siguiente página de índice (index1.html, index2.html…)
+  // El patrón es indexN.html donde N > número actual
+  const currentMatch = baseUrl.match(/index(\d+)\.html/);
+  const currentPage = currentMatch ? parseInt(currentMatch[1], 10) : 0;
+  const nextPageUrl = new URL(`index${currentPage + 1}.html`, baseUrl).href;
+
+  // Verificar si la página actual tiene resultados (si no, no hay siguiente)
+  const hasResults = artists.length > 0;
+
+  return {
+    artists,
+    // Retornamos la URL candidata a la siguiente página; el crawler verificará si existe
+    nextPageUrl: hasResults ? nextPageUrl : null
+  };
+}
+
+/**
+ * Parsea la página de catálogo de un artista de LaCuerda.net.
+ * Extrae los links a páginas de índice de versiones de cada canción.
+ *
+ * @param {string} html HTML de la página del artista
+ * @param {string} baseUrl URL de la página del artista (para resolver hrefs relativos)
+ * @returns {{ songs: Array<{url: string, title: string}> }}
+ */
+export function parseArtistPage(html, baseUrl) {
+  const $ = cheerio.load(html);
+  const songs = [];
+  const seen = new Set();
+
+  // La lista de canciones del artista está en #b_main
+  $('#b_main li').each((i, el) => {
+    const $a = $(el).find('a').first();
+    const href = $a.attr('href');
+    if (!href) return;
+
+    // El título de la canción: remover el texto "acordes" o "tab" que sigue en <em>
+    let title = $a.clone().find('em').remove().end().text().trim();
+
+    // Resolver URL (puede ser relativa como "amiga_veneno" o "/artista/cancion")
+    const resolvedUrl = new URL(href, baseUrl).href;
+
+    // Deduplicar (algunos artistas listan la misma canción dos veces con diferente acento)
+    if (!seen.has(resolvedUrl)) {
+      seen.add(resolvedUrl);
+      songs.push({ url: resolvedUrl, title });
+    }
+  });
+
+  return { songs };
+}

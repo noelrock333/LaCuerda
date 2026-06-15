@@ -5,6 +5,8 @@ import pg from 'pg';
 
 const { Pool } = pg;
 
+
+
 /**
  * Convierte un texto en un slug amigable de URL al estilo de LaCuerda.net.
  * Ej. "Mon Laferte" -> "mon_laferte"
@@ -55,6 +57,15 @@ export const favorites = pgTable('favorites', {
   user_id: integer('user_id').notNull(),
   song_id: integer('song_id').notNull(),
   created_at: timestamp('created_at').defaultNow()
+});
+
+export const failedUrls = pgTable('failed_urls', {
+  id: serial('id').primaryKey(),
+  url: text('url').notNull().unique(),
+  error_message: text('error_message'),
+  failed_at: timestamp('failed_at').defaultNow(),
+  retry_count: integer('retry_count').default(0),
+  resolved: boolean('resolved').default(false)
 });
 
 export class ChordsDatabase {
@@ -121,6 +132,18 @@ export class ChordsDatabase {
         token VARCHAR(255) PRIMARY KEY,
         user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Crear tabla failed_urls para registrar errores de crawling
+    await this.db.execute(sql`
+      CREATE TABLE IF NOT EXISTS failed_urls (
+        id SERIAL PRIMARY KEY,
+        url TEXT UNIQUE NOT NULL,
+        error_message TEXT,
+        failed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        retry_count INTEGER DEFAULT 0,
+        resolved BOOLEAN DEFAULT FALSE
       )
     `);
 
@@ -478,6 +501,50 @@ export class ChordsDatabase {
       .where(and(eq(favorites.user_id, userId), eq(favorites.song_id, songId)))
       .limit(1);
     return result.length > 0;
+  }
+
+  /**
+   * Registra una URL fallida durante el crawling (o incrementa su contador de reintentos).
+   * @param {string} url La URL que falló
+   * @param {string} errorMessage Mensaje de error descriptivo
+   */
+  async recordFailedUrl(url, errorMessage) {
+    await this.db.execute(sql`
+      INSERT INTO failed_urls (url, error_message, retry_count, resolved)
+      VALUES (${url}, ${errorMessage}, 1, FALSE)
+      ON CONFLICT (url) DO UPDATE
+        SET error_message = ${errorMessage},
+            failed_at = CURRENT_TIMESTAMP,
+            retry_count = failed_urls.retry_count + 1,
+            resolved = FALSE
+    `);
+  }
+
+  /**
+   * Obtiene todas las URLs fallidas pendientes de reintentar.
+   * @param {boolean} includeResolved Si es true, incluye las ya resueltas
+   * @returns {Promise<Array<Object>>}
+   */
+  async getFailedUrls(includeResolved = false) {
+    if (includeResolved) {
+      return await this.db.select().from(failedUrls).orderBy(failedUrls.failed_at);
+    }
+    return await this.db
+      .select()
+      .from(failedUrls)
+      .where(eq(failedUrls.resolved, false))
+      .orderBy(failedUrls.failed_at);
+  }
+
+  /**
+   * Marca una URL fallida como resuelta exitosamente.
+   * @param {string} url La URL que fue resuelta
+   */
+  async markFailedUrlResolved(url) {
+    await this.db
+      .update(failedUrls)
+      .set({ resolved: true })
+      .where(eq(failedUrls.url, url));
   }
 
   /**
