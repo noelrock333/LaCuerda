@@ -610,20 +610,42 @@ fastify.get('/api/favorites/status/:songId', async (request, reply) => {
 
   const authHeader = request.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return { isFavorite: false };
+    return { isFavorite: false, isAwesome: false };
   }
 
   const token = authHeader.substring(7);
   try {
     const session = await db.getSession(token);
     if (!session) {
-      return { isFavorite: false };
+      return { isFavorite: false, isAwesome: false };
     }
-    const isFav = await db.isFavorite(session.user_id, songId);
-    return { isFavorite: isFav };
+    const favRecord = await db.getFavoriteRecord(session.user_id, songId);
+    return {
+      isFavorite: !!favRecord,
+      isAwesome: favRecord ? favRecord.is_awesome : false
+    };
   } catch (error) {
     fastify.log.error(error);
-    return { isFavorite: false };
+    return { isFavorite: false, isAwesome: false };
+  }
+});
+
+fastify.put('/api/favorites/awesome/:songId', async (request, reply) => {
+  const songId = parseInt(request.params.songId, 10);
+  if (isNaN(songId)) {
+    return reply.status(400).send({ error: 'ID de versión inválido' });
+  }
+
+  try {
+    const userId = await authenticate(request, reply);
+    const { is_awesome } = request.body || {};
+
+    await db.updateFavoriteAwesome(userId, songId, is_awesome);
+    return { success: true, is_awesome };
+  } catch (error) {
+    if (error.message === 'Unauthorized') return;
+    fastify.log.error(error);
+    reply.status(500).send({ error: 'Error al actualizar estado awesome' });
   }
 });
 

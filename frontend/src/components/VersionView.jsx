@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import GuitarChord from './GuitarChord';
-import { Maximize2, Minimize2, Printer, FileText, Heart, Pencil } from 'lucide-react';
+import { Maximize2, Minimize2, Printer, FileText, Heart, Pencil, Play, Pause, Type, Sliders, ChevronRight, ArrowUp, Flame } from 'lucide-react';
 
 const HISTORY_KEY = 'lacuerda_view_history';
 
@@ -73,6 +73,7 @@ export default function VersionView({ artistSlug, versionSlug, onChordClick, onA
   const [error, setError] = useState(false);
   const [fontSize, setFontSize] = useState(16);
   const [isFavorite, setIsFavorite] = useState(false);
+  const [isAwesome, setIsAwesome] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
 
   // Estados para modo edición
@@ -96,6 +97,24 @@ export default function VersionView({ artistSlug, versionSlug, onChordClick, onA
   const [isScrolling, setIsScrolling] = useState(false);
   const [scrollSpeed, setScrollSpeed] = useState(3);
   const scrollIntervalRef = useRef(null);
+
+  // Floating panel states & helpers
+  const [isFloatingExpanded, setIsFloatingExpanded] = useState(() => {
+    const saved = localStorage.getItem('lacuerda_floating_expanded');
+    if (saved !== null) return saved === 'true';
+    return window.innerWidth > 900;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('lacuerda_floating_expanded', isFloatingExpanded);
+  }, [isFloatingExpanded]);
+
+  const scrollToTop = () => {
+    const scrollContainer = document.querySelector('.main-content');
+    if (scrollContainer) {
+      scrollContainer.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
 
   useEffect(() => {
     let active = true;
@@ -122,9 +141,12 @@ export default function VersionView({ artistSlug, versionSlug, onChordClick, onA
                 'Authorization': `Bearer ${token}`
               }
             })
-              .then(res => res.ok ? res.json() : { isFavorite: false })
+              .then(res => res.ok ? res.json() : { isFavorite: false, isAwesome: false })
               .then(data => {
-                if (active) setIsFavorite(data.isFavorite);
+                if (active) {
+                  setIsFavorite(data.isFavorite);
+                  setIsAwesome(data.isAwesome || false);
+                }
               })
               .catch(err => console.error(err));
           }
@@ -360,6 +382,32 @@ export default function VersionView({ artistSlug, versionSlug, onChordClick, onA
 
       if (res.ok) {
         setIsFavorite(!isFavorite);
+        if (isFavorite) {
+          setIsAwesome(false);
+        }
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const toggleAwesome = async () => {
+    const token = localStorage.getItem('token');
+    if (!token || !song) return;
+
+    const newAwesome = !isAwesome;
+    try {
+      const res = await fetch(`/api/favorites/awesome/${song.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ is_awesome: newAwesome })
+      });
+
+      if (res.ok) {
+        setIsAwesome(newAwesome);
       }
     } catch (err) {
       console.error(err);
@@ -626,6 +674,16 @@ export default function VersionView({ artistSlug, versionSlug, onChordClick, onA
               >
                 <Heart size={18} fill={isFavorite ? "var(--chord-color, #e11d48)" : "none"} />
               </button>
+              {isFavorite && (
+                <button
+                  className={`control-circle-btn chida-fire-btn ${isAwesome ? 'is-awesome' : ''}`}
+                  onClick={toggleAwesome}
+                  title={isAwesome ? "Quitar marca chida (mejor calidad)" : "Marcar como chida (mejor calidad / interpretación)"}
+                  style={{ color: isAwesome ? '#f97316' : 'var(--text-muted)' }}
+                >
+                  <Flame size={18} fill={isAwesome ? "#f97316" : "none"} />
+                </button>
+              )}
               {currentUser && (currentUser.role === 'admin' || currentUser.role === 'moderator') && (
                 <button
                   className={`control-circle-btn edit-version-btn ${isEditing ? 'active' : ''}`}
@@ -726,48 +784,139 @@ export default function VersionView({ artistSlug, versionSlug, onChordClick, onA
             </div>
           ) : (
             <>
-              {/* Barra de herramientas superior */}
-              <div className="toolbar">
-                {/* Control de Tamaño de Letra */}
-                <div className="tool-group">
-                  <label htmlFor="font-size-slider">
-                    Tamaño letra: <span id="font-size-label">{fontSize}px</span>
-                  </label>
-                  <input
-                    type="range"
-                    id="font-size-slider"
-                    min="12"
-                    max="28"
-                    value={fontSize}
-                    step="1"
-                    onChange={(e) => setFontSize(parseInt(e.target.value, 10))}
-                  />
-                </div>
-
-                {/* Control de Autoscroll */}
-                <div className="tool-group autoscroll-controls">
-                  <button
-                    id="btn-autoscroll"
-                    className={`btn btn-primary ${isScrolling ? 'active' : ''}`}
-                    onClick={toggleAutoscroll}
-                  >
-                    <span className="btn-icon">{isScrolling ? '■' : '▶'}</span>
-                    <span className="btn-text">{isScrolling ? 'Pausar' : 'Autoscroll'}</span>
-                  </button>
-                  <div className="scroll-speed-group">
-                    <label htmlFor="scroll-speed-slider">Velocidad:</label>
-                    <input
-                      type="range"
-                      id="scroll-speed-slider"
-                      min="1"
-                      max="10"
-                      value={scrollSpeed}
-                      step="1"
-                      onChange={(e) => setScrollSpeed(parseInt(e.target.value, 10))}
-                    />
-                    <span id="scroll-speed-label">x{scrollSpeed}</span>
+              {/* Barra de herramientas flotante del lado derecho */}
+              <div className="floating-toolbar-container">
+                {!isFloatingExpanded ? (
+                  <div className="floating-toolbar-collapsed">
+                    <button
+                      className="floating-fab-btn"
+                      onClick={() => setIsFloatingExpanded(true)}
+                      title="Abrir ajustes de lectura"
+                    >
+                      <Sliders size={18} />
+                    </button>
+                    <button
+                      className={`floating-fab-btn ${isScrolling ? 'active' : ''}`}
+                      onClick={toggleAutoscroll}
+                      title={isScrolling ? "Pausar autoscroll" : "Iniciar autoscroll"}
+                    >
+                      {isScrolling ? <Pause size={16} /> : <Play size={16} />}
+                    </button>
+                    <button
+                      className="floating-fab-btn"
+                      onClick={scrollToTop}
+                      title="Subir al inicio"
+                    >
+                      <ArrowUp size={16} />
+                    </button>
                   </div>
-                </div>
+                ) : (
+                  <div className="floating-toolbar-expanded">
+                    <div className="floating-toolbar-header">
+                      <span className="floating-toolbar-title">Ajustes de Lectura</span>
+                      <button
+                        className="floating-toolbar-close-btn"
+                        onClick={() => setIsFloatingExpanded(false)}
+                        title="Minimizar panel"
+                      >
+                        <ChevronRight size={18} />
+                      </button>
+                    </div>
+
+                    {/* Control de Autoscroll */}
+                    <div className="floating-toolbar-section">
+                      <button
+                        className={`floating-autoscroll-toggle ${isScrolling ? 'active' : ''}`}
+                        onClick={toggleAutoscroll}
+                      >
+                        {isScrolling ? <Pause size={16} /> : <Play size={16} />}
+                        <span>{isScrolling ? 'Pausar Scroll' : 'Autoscroll'}</span>
+                      </button>
+
+                      <div className="floating-toolbar-label">
+                        <span className="floating-toolbar-label-left">
+                          <Sliders size={13} style={{ transform: 'rotate(90deg)' }} /> Velocidad
+                        </span>
+                        <span className="floating-toolbar-value">x{scrollSpeed}</span>
+                      </div>
+                      <div className="floating-toolbar-controls">
+                        <input
+                          type="range"
+                          min="1"
+                          max="10"
+                          value={scrollSpeed}
+                          step="1"
+                          onChange={(e) => setScrollSpeed(parseInt(e.target.value, 10))}
+                        />
+                        <div className="floating-toolbar-btn-group">
+                          <button
+                            className="floating-toolbar-adjust-btn"
+                            onClick={() => setScrollSpeed(prev => Math.max(1, prev - 1))}
+                            title="Reducir velocidad"
+                          >
+                            -
+                          </button>
+                          <button
+                            className="floating-toolbar-adjust-btn"
+                            onClick={() => setScrollSpeed(prev => Math.min(10, prev + 1))}
+                            title="Aumentar velocidad"
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="floating-toolbar-divider" />
+
+                    {/* Control de Tamaño de Letra */}
+                    <div className="floating-toolbar-section">
+                      <div className="floating-toolbar-label">
+                        <span className="floating-toolbar-label-left">
+                          <Type size={14} /> Tamaño Letra
+                        </span>
+                        <span className="floating-toolbar-value">{fontSize}px</span>
+                      </div>
+                      <div className="floating-toolbar-controls">
+                        <input
+                          type="range"
+                          min="12"
+                          max="28"
+                          value={fontSize}
+                          step="1"
+                          onChange={(e) => setFontSize(parseInt(e.target.value, 10))}
+                        />
+                        <div className="floating-toolbar-btn-group">
+                          <button
+                            className="floating-toolbar-adjust-btn"
+                            onClick={() => setFontSize(prev => Math.max(12, prev - 1))}
+                            title="Reducir letra"
+                          >
+                            -
+                          </button>
+                          <button
+                            className="floating-toolbar-adjust-btn"
+                            onClick={() => setFontSize(prev => Math.min(28, prev + 1))}
+                            title="Aumentar letra"
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="floating-toolbar-divider" />
+
+                    {/* Botón rápido para subir al inicio */}
+                    <button
+                      className="floating-toolbar-top-btn"
+                      onClick={scrollToTop}
+                    >
+                      <ArrowUp size={14} />
+                      <span>Subir al inicio</span>
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Diagramas de acordes recomendados */}

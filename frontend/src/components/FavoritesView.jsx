@@ -14,6 +14,7 @@ export default function FavoritesView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [filterQuery, setFilterQuery] = useState('');
+  const [onlyAwesome, setOnlyAwesome] = useState(false);
 
   const token = localStorage.getItem('token');
 
@@ -95,7 +96,8 @@ export default function FavoritesView() {
       version_number: ver.version_number,
       type: ver.type,
       contributor: ver.contributor,
-      versionSlug: versionSlug
+      versionSlug: versionSlug,
+      is_awesome: ver.is_awesome
     });
   });
 
@@ -107,16 +109,17 @@ export default function FavoritesView() {
 
   // Filtrado local
   const filteredCatalog = catalog.map(artistGroup => {
-    const matchedVersions = artistGroup.versions.filter(ver =>
-      ver.title.toLowerCase().includes(filterQuery.toLowerCase())
-    );
+    const matchedVersions = artistGroup.versions.filter(ver => {
+      const matchesQuery = ver.title.toLowerCase().includes(filterQuery.toLowerCase()) ||
+                           artistGroup.artist.toLowerCase().includes(filterQuery.toLowerCase());
+      const matchesAwesome = !onlyAwesome || ver.is_awesome;
+      return matchesQuery && matchesAwesome;
+    });
     
-    const isArtistMatch = artistGroup.artist.toLowerCase().includes(filterQuery.toLowerCase());
-    
-    if (isArtistMatch || matchedVersions.length > 0) {
+    if (matchedVersions.length > 0) {
       return {
         ...artistGroup,
-        versions: isArtistMatch ? artistGroup.versions : matchedVersions
+        versions: matchedVersions
       };
     }
     return null;
@@ -145,19 +148,31 @@ export default function FavoritesView() {
         </div>
       </div>
 
-      <div className="catalog-filter-box">
-        <span className="filter-search-icon">🔍</span>
-        <input
-          type="text"
-          placeholder="Filtrar tus favoritos por artista o canción..."
-          value={filterQuery}
-          onChange={(e) => setFilterQuery(e.target.value)}
-        />
-        {filterQuery && (
-          <button className="clear-filter-btn" onClick={() => setFilterQuery('')}>
-            &times;
-          </button>
-        )}
+      <div className="favorites-filter-row" style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap', marginBottom: '24px', width: '100%' }}>
+        <div className="catalog-filter-box" style={{ flex: 1, margin: 0 }}>
+          <span className="filter-search-icon">🔍</span>
+          <input
+            type="text"
+            placeholder="Filtrar tus favoritos por artista o canción..."
+            value={filterQuery}
+            onChange={(e) => setFilterQuery(e.target.value)}
+          />
+          {filterQuery && (
+            <button className="clear-filter-btn" onClick={() => setFilterQuery('')}>
+              &times;
+            </button>
+          )}
+        </div>
+        
+        <label className="chida-filter-toggle" style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: '600', color: 'var(--text-main)', userSelect: 'none' }}>
+          <input 
+            type="checkbox" 
+            checked={onlyAwesome} 
+            onChange={(e) => setOnlyAwesome(e.target.checked)} 
+            style={{ width: '16px', height: '16px', accentColor: 'var(--chord-color)' }}
+          />
+          <span>Mostrar solo chidas 🔥</span>
+        </label>
       </div>
 
       {filteredCatalog.length === 0 ? (
@@ -196,7 +211,10 @@ export default function FavoritesView() {
                     >
                       <div className="song-item-info">
                         <span className="song-item-icon">{typeIcon}</span>
-                        <span className="song-item-title">{ver.title}</span>
+                        <span className="song-item-title">
+                          {ver.title}
+                          {ver.is_awesome && <span className="chida-badge-fav" title="Chida (mejor calidad)">🔥 Chida</span>}
+                        </span>
                       </div>
                       <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-md font-medium">
                         v{ver.version_number}

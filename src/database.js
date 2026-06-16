@@ -62,6 +62,7 @@ export const favorites = pgTable('favorites', {
   id: serial('id').primaryKey(),
   user_id: integer('user_id').notNull(),
   song_id: integer('song_id').notNull(),
+  is_awesome: boolean('is_awesome').default(false),
   created_at: timestamp('created_at').defaultNow()
 });
 
@@ -180,6 +181,11 @@ export class ChordsDatabase {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         CONSTRAINT unique_user_song UNIQUE (user_id, song_id)
       )
+    `);
+
+    // Añadir columna is_awesome si no existe (migración en caliente)
+    await this.db.execute(sql`
+      ALTER TABLE favorites ADD COLUMN IF NOT EXISTS is_awesome BOOLEAN DEFAULT FALSE
     `);
   }
 
@@ -522,7 +528,8 @@ export class ChordsDatabase {
         album: songs.album,
         year: songs.year,
         composers: songs.composers,
-        contributor_id: songs.contributor_id
+        contributor_id: songs.contributor_id,
+        is_awesome: favorites.is_awesome
       })
       .from(favorites)
       .innerJoin(songs, eq(favorites.song_id, songs.id))
@@ -564,6 +571,28 @@ export class ChordsDatabase {
       .where(and(eq(favorites.user_id, userId), eq(favorites.song_id, songId)))
       .limit(1);
     return result.length > 0;
+  }
+
+  /**
+   * Obtiene el registro de favorito con su estado awesome completo.
+   */
+  async getFavoriteRecord(userId, songId) {
+    const result = await this.db
+      .select({ id: favorites.id, is_awesome: favorites.is_awesome })
+      .from(favorites)
+      .where(and(eq(favorites.user_id, userId), eq(favorites.song_id, songId)))
+      .limit(1);
+    return result[0] || null;
+  }
+
+  /**
+   * Actualiza el estado awesome (chida) de una versión favorita.
+   */
+  async updateFavoriteAwesome(userId, songId, isAwesome) {
+    await this.db
+      .update(favorites)
+      .set({ is_awesome: isAwesome })
+      .where(and(eq(favorites.user_id, userId), eq(favorites.song_id, songId)));
   }
 
   /**
