@@ -48,7 +48,8 @@ export const users = pgTable('users', {
   id: serial('id').primaryKey(),
   username: text('username').notNull().unique(),
   password: text('password').notNull(),
-  created_at: timestamp('created_at').defaultNow()
+  created_at: timestamp('created_at').defaultNow(),
+  role: text('role').default('user')
 });
 
 export const sessions = pgTable('sessions', {
@@ -142,6 +143,11 @@ export class ChordsDatabase {
         password VARCHAR(255) NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
+    `);
+
+    // Añadir columna de rol si no existe (migración en caliente)
+    await this.db.execute(sql`
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(50) DEFAULT 'user'
     `);
 
     // Crear tabla sessions
@@ -463,7 +469,7 @@ export class ChordsDatabase {
     const result = await this.db
       .insert(users)
       .values({ username, password: hashedPassword })
-      .returning({ id: users.id, username: users.username });
+      .returning({ id: users.id, username: users.username, role: users.role });
     return result[0];
   }
 

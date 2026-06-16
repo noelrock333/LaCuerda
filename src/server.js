@@ -4,8 +4,8 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import crypto from 'crypto';
-import { sql } from 'drizzle-orm';
-import { ChordsDatabase, slugify } from './database.js';
+import { sql, eq } from 'drizzle-orm';
+import { ChordsDatabase, slugify, songs } from './database.js';
 
 // Resolver directorios en ES Modules
 const __filename = fileURLToPath(import.meta.url);
@@ -267,6 +267,55 @@ fastify.get('/api/version/:artistSlug/:versionSlug', async (request, reply) => {
   }
 });
 
+// Helper de autorización para Administrador o Moderador
+async function authenticateAdminOrMod(request, reply) {
+  const userId = await authenticate(request, reply);
+  const result = await db.db.execute(sql`SELECT role FROM users WHERE id = ${userId} LIMIT 1`);
+  const user = result.rows[0];
+  if (!user || (user.role !== 'admin' && user.role !== 'moderator')) {
+    reply.status(403).send({ error: 'No autorizado: se requieren permisos de administrador o moderador' });
+    throw new Error('Forbidden');
+  }
+  return userId;
+}
+
+// 4.2. Actualizar el contenido y metadatos de una versión específica (Modo Edición)
+// PUT /api/version/:id
+fastify.put('/api/version/:id', async (request, reply) => {
+  const id = parseInt(request.params.id, 10);
+  if (isNaN(id)) {
+    return reply.status(400).send({ error: 'ID inválido' });
+  }
+
+  try {
+    await authenticateAdminOrMod(request, reply);
+    const { title, artist, content, chords, composers, album, year } = request.body || {};
+    
+    if (!title || !artist || !content) {
+      return reply.status(400).send({ error: 'Título, artista y contenido son requeridos' });
+    }
+
+    await db.db
+      .update(songs)
+      .set({
+        title: title.trim(),
+        artist: artist.trim(),
+        content: content,
+        chords: chords ? chords.trim() : null,
+        composers: composers ? composers.trim() : null,
+        album: album ? album.trim() : null,
+        year: year ? parseInt(year, 10) : null
+      })
+      .where(eq(songs.id, id));
+
+    return { success: true };
+  } catch (error) {
+    if (error.message === 'Unauthorized' || error.message === 'Forbidden') return;
+    fastify.log.error(error);
+    reply.status(500).send({ error: 'Error al actualizar la versión' });
+  }
+});
+
 // Helper para construir la cabecera ASCII en el backend
 function generateTxtHeaderBackend(song) {
   const lineLength = 70;
@@ -440,7 +489,7 @@ fastify.post('/api/auth/register', async (request, reply) => {
     const token = crypto.randomUUID();
     await db.createSession(token, user.id);
 
-    return { token, user: { id: user.id, username: user.username } };
+    return { token, user: { id: user.id, username: user.username, role: user.role } };
   } catch (error) {
     fastify.log.error(error);
     return reply.status(500).send({ error: 'Error al registrar el usuario' });
@@ -467,7 +516,7 @@ fastify.post('/api/auth/login', async (request, reply) => {
     const token = crypto.randomUUID();
     await db.createSession(token, user.id);
 
-    return { token, user: { id: user.id, username: user.username } };
+    return { token, user: { id: user.id, username: user.username, role: user.role } };
   } catch (error) {
     fastify.log.error(error);
     return reply.status(500).send({ error: 'Error al iniciar sesión' });
@@ -490,12 +539,12 @@ fastify.post('/api/auth/logout', async (request, reply) => {
 fastify.get('/api/auth/me', async (request, reply) => {
   try {
     const userId = await authenticate(request, reply);
-    const result = await db.db.execute(sql`SELECT id, username FROM users WHERE id = ${userId} LIMIT 1`);
+    const result = await db.db.execute(sql`SELECT id, username, role FROM users WHERE id = ${userId} LIMIT 1`);
     const user = result.rows[0];
     if (!user) {
       return reply.status(404).send({ error: 'Usuario no encontrado' });
     }
-    return { user: { id: user.id, username: user.username } };
+    return { user: { id: user.id, username: user.username, role: user.role } };
   } catch (error) {
     if (error.message === 'Unauthorized') return;
     fastify.log.error(error);
@@ -603,6 +652,32 @@ fastify.addHook('onClose', async (instance) => {
 const start = async () => {
   try {
     await db.init();
+    
+    // Sembrar usuarios de prueba (admin y moderator) si no existen
+    try {
+      const adminUser = await db.getUserByUsername('admin');
+      if (!adminUser) {
+        const adminHash = hashPassword('admin123');
+        await db.db.execute(sql`
+          INSERT INTO users (username, password, role)
+          VALUES ('admin', ${adminHash}, 'admin')
+        `);
+        console.log('[SEED] Creado usuario administrador: admin / admin123');
+      }
+      
+      const modUser = await db.getUserByUsername('moderator');
+      if (!modUser) {
+        const modHash = hashPassword('mod123');
+        await db.db.execute(sql`
+          INSERT INTO users (username, password, role)
+          VALUES ('moderator', ${modHash}, 'moderator')
+        `);
+        console.log('[SEED] Creado usuario moderador: moderator / mod123');
+      }
+    } catch (seedError) {
+      console.error('[SEED ERROR] Error al sembrar usuarios por defecto:', seedError.message);
+    }
+
     await fastify.listen({ port: 3000, host: '0.0.0.0' });
     console.log('\n==================================================');
     console.log('  VISUALIZADOR INICIADO CORRECTAMENTE             ');

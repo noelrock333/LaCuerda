@@ -164,6 +164,7 @@ function App() {
             versionSlug={songOrVersionSlug}
             onChordClick={(chord) => setActiveChord(chord)}
             onAuthRequired={() => setIsAuthModalOpen(true)}
+            currentUser={user}
           />
         );
       } else {

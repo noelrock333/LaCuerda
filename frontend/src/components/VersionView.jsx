@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import GuitarChord from './GuitarChord';
-import { Maximize2, Minimize2, Printer, FileText, Heart } from 'lucide-react';
+import { Maximize2, Minimize2, Printer, FileText, Heart, Pencil } from 'lucide-react';
 
 const HISTORY_KEY = 'lacuerda_view_history';
 
@@ -67,13 +67,23 @@ function highlightChords(content, chordsStr) {
   return highlightedLines.join('\n');
 }
 
-export default function VersionView({ artistSlug, versionSlug, onChordClick, onAuthRequired }) {
+export default function VersionView({ artistSlug, versionSlug, onChordClick, onAuthRequired, currentUser }) {
   const [song, setSong] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [fontSize, setFontSize] = useState(16);
   const [isFavorite, setIsFavorite] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
+
+  // Estados para modo edición
+  const [isEditing, setIsEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState('');
+  const [editArtist, setEditArtist] = useState('');
+  const [editComposers, setEditComposers] = useState('');
+  const [editAlbum, setEditAlbum] = useState('');
+  const [editYear, setEditYear] = useState('');
+  const [editChords, setEditChords] = useState('');
+  const [editContent, setEditContent] = useState('');
 
   // Sidebar states
   const [versionsList, setVersionsList] = useState([]);
@@ -215,6 +225,62 @@ export default function VersionView({ artistSlug, versionSlug, onChordClick, onA
 
   const toggleAutoscroll = () => {
     setIsScrolling((prev) => !prev);
+  };
+
+  useEffect(() => {
+    if (song) {
+      setEditTitle(song.title || '');
+      setEditArtist(song.artist || '');
+      setEditComposers(song.composers || '');
+      setEditAlbum(song.album || '');
+      setEditYear(song.year || '');
+      setEditChords(song.chords || '');
+      setEditContent(song.content || '');
+    }
+  }, [song]);
+
+  const handleSaveChanges = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    try {
+      const res = await fetch(`/api/version/${song.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          title: editTitle,
+          artist: editArtist,
+          composers: editComposers,
+          album: editAlbum,
+          year: editYear ? parseInt(editYear, 10) : null,
+          chords: editChords,
+          content: editContent
+        })
+      });
+
+      if (res.ok) {
+        setSong(prev => ({
+          ...prev,
+          title: editTitle,
+          artist: editArtist,
+          composers: editComposers,
+          album: editAlbum,
+          year: editYear ? parseInt(editYear, 10) : null,
+          chords: editChords,
+          content: editContent
+        }));
+        setIsEditing(false);
+      } else {
+        const errorData = await res.json();
+        alert(`Error al guardar: ${errorData.error || 'Intenta de nuevo'}`);
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error de conexión al guardar los cambios.');
+    }
   };
 
   const handleTabClick = (e) => {
@@ -525,7 +591,7 @@ export default function VersionView({ artistSlug, versionSlug, onChordClick, onA
             </div>
           </header>
 
-          {/* Divisor con controles integrados (Expandir, Imprimir, Texto Plano y Favoritos) */}
+          {/* Divisor con controles integrados (Expandir, Imprimir, Texto Plano, Favoritos y Editar) */}
           <div className="controls-divider-container">
             <div className="controls-divider-line"></div>
             <div className="controls-divider-buttons">
@@ -560,85 +626,184 @@ export default function VersionView({ artistSlug, versionSlug, onChordClick, onA
               >
                 <Heart size={18} fill={isFavorite ? "var(--chord-color, #e11d48)" : "none"} />
               </button>
+              {currentUser && (currentUser.role === 'admin' || currentUser.role === 'moderator') && (
+                <button
+                  className={`control-circle-btn edit-version-btn ${isEditing ? 'active' : ''}`}
+                  onClick={() => setIsEditing(!isEditing)}
+                  title={isEditing ? "Cancelar edición" : "Editar versión"}
+                  style={{ color: 'var(--accent-light)' }}
+                >
+                  <Pencil size={18} />
+                </button>
+              )}
             </div>
           </div>
 
-          {/* Barra de herramientas superior */}
-          <div className="toolbar">
-            {/* Control de Tamaño de Letra */}
-            <div className="tool-group">
-              <label htmlFor="font-size-slider">
-                Tamaño letra: <span id="font-size-label">{fontSize}px</span>
-              </label>
-              <input
-                type="range"
-                id="font-size-slider"
-                min="12"
-                max="28"
-                value={fontSize}
-                step="1"
-                onChange={(e) => setFontSize(parseInt(e.target.value, 10))}
-              />
-            </div>
-
-            {/* Control de Autoscroll */}
-            <div className="tool-group autoscroll-controls">
-              <button
-                id="btn-autoscroll"
-                className={`btn btn-primary ${isScrolling ? 'active' : ''}`}
-                onClick={toggleAutoscroll}
-              >
-                <span className="btn-icon">{isScrolling ? '■' : '▶'}</span>
-                <span className="btn-text">{isScrolling ? 'Pausar' : 'Autoscroll'}</span>
-              </button>
-              <div className="scroll-speed-group">
-                <label htmlFor="scroll-speed-slider">Velocidad:</label>
-                <input
-                  type="range"
-                  id="scroll-speed-slider"
-                  min="1"
-                  max="10"
-                  value={scrollSpeed}
-                  step="1"
-                  onChange={(e) => setScrollSpeed(parseInt(e.target.value, 10))}
+          {isEditing ? (
+            <div className="version-edit-form">
+              <div className="edit-form-header">
+                <h3>Modo Edición</h3>
+                <p>Estás editando los detalles de esta versión ({song.type.toUpperCase()} - v{song.version_number}).</p>
+              </div>
+              
+              <div className="edit-form-grid">
+                <div className="edit-form-group">
+                  <label>Título de la Canción</label>
+                  <input 
+                    type="text" 
+                    value={editTitle} 
+                    onChange={(e) => setEditTitle(e.target.value)} 
+                    placeholder="Título..."
+                  />
+                </div>
+                <div className="edit-form-group">
+                  <label>Artista / Banda</label>
+                  <input 
+                    type="text" 
+                    value={editArtist} 
+                    onChange={(e) => setEditArtist(e.target.value)} 
+                    placeholder="Artista..."
+                  />
+                </div>
+                <div className="edit-form-group">
+                  <label>Compositores</label>
+                  <input 
+                    type="text" 
+                    value={editComposers} 
+                    onChange={(e) => setEditComposers(e.target.value)} 
+                    placeholder="Compositores..."
+                  />
+                </div>
+                <div className="edit-form-group">
+                  <label>Álbum</label>
+                  <input 
+                    type="text" 
+                    value={editAlbum} 
+                    onChange={(e) => setEditAlbum(e.target.value)} 
+                    placeholder="Nombre del disco..."
+                  />
+                </div>
+                <div className="edit-form-group">
+                  <label>Año de lanzamiento</label>
+                  <input 
+                    type="number" 
+                    value={editYear} 
+                    onChange={(e) => setEditYear(e.target.value)} 
+                    placeholder="Año..."
+                  />
+                </div>
+                <div className="edit-form-group">
+                  <label>Acordes (Separados por espacios)</label>
+                  <input 
+                    type="text" 
+                    value={editChords} 
+                    onChange={(e) => setEditChords(e.target.value)} 
+                    placeholder="Bb G Eb F..."
+                  />
+                </div>
+              </div>
+              
+              <div className="edit-form-group content-group" style={{ marginTop: '20px' }}>
+                <label>Contenido de la Tablatura / Acordes</label>
+                <textarea
+                  value={editContent}
+                  onChange={(e) => setEditContent(e.target.value)}
+                  rows={24}
+                  style={{ fontSize: `${fontSize}px` }}
+                  className="edit-tab-textarea"
+                  placeholder="Escribe aquí los acordes y la letra..."
                 />
-                <span id="scroll-speed-label">x{scrollSpeed}</span>
+              </div>
+              
+              <div className="edit-form-actions">
+                <button className="btn btn-save" onClick={handleSaveChanges}>
+                  Guardar Cambios
+                </button>
+                <button className="btn btn-cancel" onClick={() => setIsEditing(false)}>
+                  Cancelar
+                </button>
               </div>
             </div>
-          </div>
+          ) : (
+            <>
+              {/* Barra de herramientas superior */}
+              <div className="toolbar">
+                {/* Control de Tamaño de Letra */}
+                <div className="tool-group">
+                  <label htmlFor="font-size-slider">
+                    Tamaño letra: <span id="font-size-label">{fontSize}px</span>
+                  </label>
+                  <input
+                    type="range"
+                    id="font-size-slider"
+                    min="12"
+                    max="28"
+                    value={fontSize}
+                    step="1"
+                    onChange={(e) => setFontSize(parseInt(e.target.value, 10))}
+                  />
+                </div>
 
-          {/* Diagramas de acordes recomendados */}
-          {chordList.length > 0 && (
-            <div id="version-chords-box" className="version-chords-diagrams-container">
-              <h4>Acordes recomendados en esta versión:</h4>
-              <div id="version-chords-list" className="chords-diagrams-list">
-                {chordList.map((chord, index) => (
-                  <div
-                    key={`${chord}-${index}`}
-                    className="chord-diagram-card"
-                    onClick={() => onChordClick && onChordClick(chord)}
-                    title={`Ver variaciones de ${chord}`}
+                {/* Control de Autoscroll */}
+                <div className="tool-group autoscroll-controls">
+                  <button
+                    id="btn-autoscroll"
+                    className={`btn btn-primary ${isScrolling ? 'active' : ''}`}
+                    onClick={toggleAutoscroll}
                   >
-                    <span className="chord-diagram-name">{chord}</span>
-                    <div className="chord-diagram-svg-wrap">
-                      <GuitarChord chordName={chord} />
-                    </div>
+                    <span className="btn-icon">{isScrolling ? '■' : '▶'}</span>
+                    <span className="btn-text">{isScrolling ? 'Pausar' : 'Autoscroll'}</span>
+                  </button>
+                  <div className="scroll-speed-group">
+                    <label htmlFor="scroll-speed-slider">Velocidad:</label>
+                    <input
+                      type="range"
+                      id="scroll-speed-slider"
+                      min="1"
+                      max="10"
+                      value={scrollSpeed}
+                      step="1"
+                      onChange={(e) => setScrollSpeed(parseInt(e.target.value, 10))}
+                    />
+                    <span id="scroll-speed-label">x{scrollSpeed}</span>
                   </div>
-                ))}
+                </div>
               </div>
-            </div>
-          )}
 
-          {/* Panel de la tablatura preformateada */}
-          <div className="tab-content-container">
-            <pre
-              id="version-tab-content"
-              className="tab-content"
-              style={{ fontSize: `${fontSize}px` }}
-              onClick={handleTabClick}
-              dangerouslySetInnerHTML={{ __html: highlightedHtml }}
-            />
-          </div>
+              {/* Diagramas de acordes recomendados */}
+              {chordList.length > 0 && (
+                <div id="version-chords-box" className="version-chords-diagrams-container">
+                  <h4>Acordes recomendados en esta versión:</h4>
+                  <div id="version-chords-list" className="chords-diagrams-list">
+                    {chordList.map((chord, index) => (
+                      <div
+                        key={`${chord}-${index}`}
+                        className="chord-diagram-card"
+                        onClick={() => onChordClick && onChordClick(chord)}
+                        title={`Ver variaciones de ${chord}`}
+                      >
+                        <span className="chord-diagram-name">{chord}</span>
+                        <div className="chord-diagram-svg-wrap">
+                          <GuitarChord chordName={chord} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Panel de la tablatura preformateada */}
+              <div className="tab-content-container">
+                <pre
+                  id="version-tab-content"
+                  className="tab-content"
+                  style={{ fontSize: `${fontSize}px` }}
+                  onClick={handleTabClick}
+                  dangerouslySetInnerHTML={{ __html: highlightedHtml }}
+                />
+              </div>
+            </>
+          )}
         </section>
       </div>
     </div>
