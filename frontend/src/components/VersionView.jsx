@@ -646,6 +646,7 @@ export default function VersionView({ artistSlug, versionSlug, onChordClick, onA
               <button
                 className={`control-circle-btn ${isExpanded ? 'active' : ''}`}
                 onClick={() => setIsExpanded(!isExpanded)}
+                data-tooltip={isExpanded ? "Contraer pantalla" : "Pantalla completa"}
                 title={isExpanded ? "Contraer área de tablatura" : "Expandir área de tablatura"}
               >
                 {isExpanded ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
@@ -653,6 +654,7 @@ export default function VersionView({ artistSlug, versionSlug, onChordClick, onA
               <button
                 className="control-circle-btn"
                 onClick={() => window.print()}
+                data-tooltip="Imprimir versión"
                 title="Vista de impresión"
               >
                 <Printer size={18} />
@@ -663,6 +665,7 @@ export default function VersionView({ artistSlug, versionSlug, onChordClick, onA
                   const txtSlug = versionSlug.replace(/\.shtml$/, '') + '.txt';
                   window.open(`/TXT/${artistSlug}/${txtSlug}`, '_blank');
                 }}
+                data-tooltip="Ver texto plano (.txt)"
                 title="Ver contenido en texto plano (.txt)"
               >
                 <FileText size={18} />
@@ -670,6 +673,7 @@ export default function VersionView({ artistSlug, versionSlug, onChordClick, onA
               <button
                 className={`control-circle-btn favorite-heart-btn ${isFavorite ? 'is-fav' : ''}`}
                 onClick={toggleFavorite}
+                data-tooltip={isFavorite ? "Quitar de favoritos" : "Marcar favorito"}
                 title={isFavorite ? "Quitar de favoritos" : "Marcar como favorito"}
               >
                 <Heart size={18} fill={isFavorite ? "var(--chord-color, #e11d48)" : "none"} />
@@ -678,6 +682,7 @@ export default function VersionView({ artistSlug, versionSlug, onChordClick, onA
                 <button
                   className={`control-circle-btn chida-fire-btn ${isAwesome ? 'is-awesome' : ''}`}
                   onClick={toggleAwesome}
+                  data-tooltip={isAwesome ? "Quitar de chidas" : "Marcar como chida 🔥"}
                   title={isAwesome ? "Quitar marca chida (mejor calidad)" : "Marcar como chida (mejor calidad / interpretación)"}
                   style={{ color: isAwesome ? '#f97316' : 'var(--text-muted)' }}
                 >
@@ -688,6 +693,7 @@ export default function VersionView({ artistSlug, versionSlug, onChordClick, onA
                 <button
                   className={`control-circle-btn edit-version-btn ${isEditing ? 'active' : ''}`}
                   onClick={() => setIsEditing(!isEditing)}
+                  data-tooltip={isEditing ? "Cancelar edición" : "Editar versión"}
                   title={isEditing ? "Cancelar edición" : "Editar versión"}
                   style={{ color: 'var(--accent-light)' }}
                 >
