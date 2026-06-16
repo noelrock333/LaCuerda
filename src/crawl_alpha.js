@@ -18,7 +18,7 @@
 
 import fs from 'fs';
 import path from 'path';
-import { ChordsDatabase } from './database.js';
+import { ChordsDatabase } from './db/index.js';
 import {
   fetchWithRetry,
   parseLaCuerdaPage,

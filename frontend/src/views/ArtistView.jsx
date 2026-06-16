@@ -1,40 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
+import { useArtistDetailQuery } from '../hooks/useSongs.js';
 
 export default function ArtistView({ artistSlug }) {
-  const [data, setData] = useState({ artist: '', slug: '', songs: [] });
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
+  const { data = { artist: '', slug: '', songs: [] }, isLoading, error } = useArtistDetailQuery(artistSlug);
 
   useEffect(() => {
-    let active = true;
-    setLoading(true);
-    setError(false);
+    if (data.artist) {
+      document.title = `Acordes de ${data.artist} - LaCuerda Offline`;
+    }
+  }, [data.artist]);
 
-    const fetchArtist = async () => {
-      try {
-        const response = await fetch(`/api/artists/${artistSlug}`);
-        if (!response.ok) throw new Error('Artist not found');
-        const json = await response.json();
-        
-        if (active) {
-          setData(json);
-          setLoading(false);
-          document.title = `Acordes de ${json.artist} - LaCuerda Offline`;
-        }
-      } catch (err) {
-        console.error(err);
-        if (active) {
-          setError(true);
-          setLoading(false);
-        }
-      }
-    };
-
-    fetchArtist();
-    return () => { active = false; };
-  }, [artistSlug]);
-
-  if (loading) {
+  if (isLoading) {
     return (
       <section id="view-artist" className="view-section">
         <header className="view-header">

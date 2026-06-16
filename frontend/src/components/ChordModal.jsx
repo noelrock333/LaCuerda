@@ -1,8 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import GuitarChord from './GuitarChord';
 import { getChordFingerings } from '../utils/chords';
+import useUIStore from '../store/useUIStore.js';
 
-export default function ChordModal({ chordName, onClose }) {
+export default function ChordModal() {
+  const chordName = useUIStore((state) => state.activeChord);
+  const onClose = useUIStore((state) => state.closeChordModal);
+
   const [currentIndex, setCurrentIndex] = useState(0);
   const fingerings = getChordFingerings(chordName);
 

@@ -1,39 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
+import { useArtistsByLetterQuery } from '../hooks/useSongs.js';
 
 export default function AlphabetView({ letter, page }) {
-  const [data, setData] = useState({ artists: [], page: 1, total: 0, totalPages: 0 });
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
+  const { data = { artists: [], page: 1, total: 0, totalPages: 0 }, isLoading, error } = useArtistsByLetterQuery(letter, page);
 
-  useEffect(() => {
-    let active = true;
-    setLoading(true);
-    setError(false);
-
-    const fetchData = async () => {
-      try {
-        const response = await fetch(`/api/artists/by-letter/${letter}?page=${page}`);
-        if (!response.ok) throw new Error('Failed to load alphabetical artists');
-        const json = await response.json();
-        
-        if (active) {
-          setData(json);
-          setLoading(false);
-        }
-      } catch (err) {
-        console.error(err);
-        if (active) {
-          setError(true);
-          setLoading(false);
-        }
-      }
-    };
-
-    fetchData();
-    return () => { active = false; };
-  }, [letter, page]);
-
-  if (loading) {
+  if (isLoading) {
     return (
       <section id="view-alphabet" className="view-section">
         <header className="view-header">
@@ -56,7 +27,7 @@ export default function AlphabetView({ letter, page }) {
           </div>
           <h2 className="view-title">Artistas: <span>{letter}</span></h2>
         </header>
-        <div className="list-empty">Error al cargar la lista de artistas.</div>
+        <div className="list-empty">Error al cargar la lista de artistas. {error.message}</div>
       </section>
     );
   }

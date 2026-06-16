@@ -5,45 +5,43 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from '@/components/ui/dialog';
+} from './ui/dialog';
+import useUIStore from '../store/useUIStore.js';
+import { useLoginMutation, useRegisterMutation } from '../hooks/useAuth.js';
 
-export default function AuthModal({ isOpen, onClose, onSuccess }) {
+export default function AuthModal() {
+  const isOpen = useUIStore((state) => state.isAuthModalOpen);
+  const setAuthModalOpen = useUIStore((state) => state.setAuthModalOpen);
+  
+  const loginMutation = useLoginMutation();
+  const registerMutation = useRegisterMutation();
+
   const [isLogin, setIsLogin] = useState(true);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e) => {
+  const handleClose = () => {
+    setAuthModalOpen(false);
+    setUsername('');
+    setPassword('');
+    setError('');
+  };
+
+  const handleSubmit = (e) => {
     e.preventDefault();
     setError('');
-    setLoading(true);
 
-    const endpoint = isLogin ? '/api/auth/login' : '/api/auth/register';
-
-    try {
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ username, password }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Algo salió mal');
+    const mutation = isLogin ? loginMutation : registerMutation;
+    
+    mutation.mutate({ username, password }, {
+      onSuccess: () => {
+        handleClose();
+      },
+      onError: (err) => {
+        setError(err.message || 'Algo salió mal');
       }
-
-      onSuccess(data);
-      setUsername('');
-      setPassword('');
-      onClose();
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
+    });
   };
 
   const handleToggleMode = () => {
@@ -53,8 +51,10 @@ export default function AuthModal({ isOpen, onClose, onSuccess }) {
     setPassword('');
   };
 
+  const loading = loginMutation.isPending || registerMutation.isPending;
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="auth-modal-content">
         <DialogHeader className="auth-modal-header">
           <DialogTitle className="auth-modal-title">
@@ -62,8 +62,8 @@ export default function AuthModal({ isOpen, onClose, onSuccess }) {
           </DialogTitle>
           <DialogDescription className="auth-modal-description">
             {isLogin
-              ? 'Accede para ver y guardar tus tablaturas favoritas'
-              : 'Regístrate para empezar a guardar tus tablaturas'}
+               ? 'Accede para ver y guardar tus tablaturas favoritas'
+               : 'Regístrate para empezar a guardar tus tablaturas'}
           </DialogDescription>
         </DialogHeader>
 
@@ -121,6 +121,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess }) {
             type="button"
             onClick={handleToggleMode}
             className="auth-toggle-btn"
+            disabled={loading}
           >
             {isLogin
               ? '¿No tienes cuenta? Regístrate aquí'

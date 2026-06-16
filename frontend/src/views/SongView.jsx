@@ -1,40 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
+import { useSongDetailQuery } from '../hooks/useSongs.js';
 
 export default function SongView({ artistSlug, songSlug }) {
-  const [data, setData] = useState({ title: '', artist: '', versions: [] });
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
+  const { data = { title: '', artist: '', versions: [] }, isLoading, error } = useSongDetailQuery(artistSlug, songSlug);
 
   useEffect(() => {
-    let active = true;
-    setLoading(true);
-    setError(false);
+    if (data.title && data.artist) {
+      document.title = `${data.title} de ${data.artist} - LaCuerda Offline`;
+    }
+  }, [data.title, data.artist]);
 
-    const fetchSong = async () => {
-      try {
-        const response = await fetch(`/api/songs/${artistSlug}/${songSlug}`);
-        if (!response.ok) throw new Error('Song not found');
-        const json = await response.json();
-        
-        if (active) {
-          setData(json);
-          setLoading(false);
-          document.title = `${json.title} de ${json.artist} - LaCuerda Offline`;
-        }
-      } catch (err) {
-        console.error(err);
-        if (active) {
-          setError(true);
-          setLoading(false);
-        }
-      }
-    };
-
-    fetchSong();
-    return () => { active = false; };
-  }, [artistSlug, songSlug]);
-
-  if (loading) {
+  if (isLoading) {
     return (
       <section id="view-song" className="view-section">
         <header className="view-header">
@@ -83,11 +59,9 @@ export default function SongView({ artistSlug, songSlug }) {
             <div className="list-empty">No hay versiones locales guardadas</div>
           ) : (
             data.versions.map((ver) => {
-              // Obtener nombre del archivo de la versión para el link
               const urlParts = ver.source_url.split('/');
               const filename = urlParts[urlParts.length - 1];
 
-              // Determinar icono y título legible según tipo
               let typeLabel = 'Letra y Acordes';
               let typeIcon = '🎼';
               if (ver.type === 'tab') {
@@ -98,7 +72,6 @@ export default function SongView({ artistSlug, songSlug }) {
                 typeIcon = '🎻';
               }
 
-              // Simular calidad de 3 a 5 estrellas para barras
               const numBars = 3 + (ver.id % 3);
               const bars = Array.from({ length: 5 }).map((_, i) => (
                 <span

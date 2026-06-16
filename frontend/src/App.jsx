@@ -1,70 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import HomeView from './components/HomeView';
-import AlphabetView from './components/AlphabetView';
-import ArtistView from './components/ArtistView';
-import SongView from './components/SongView';
-import VersionView from './components/VersionView';
-import ChordModal from './components/ChordModal';
-import CatalogView from './components/CatalogView';
-import AuthModal from './components/AuthModal';
-import FavoritesView from './components/FavoritesView';
+import Header from './components/layout/Header.jsx';
+import HomeView from './views/HomeView.jsx';
+import AlphabetView from './views/AlphabetView.jsx';
+import ArtistView from './views/ArtistView.jsx';
+import SongView from './views/SongView.jsx';
+import VersionView from './views/VersionView.jsx';
+import CatalogView from './views/CatalogView.jsx';
+import FavoritesView from './views/FavoritesView.jsx';
+import ChordModal from './components/ChordModal.jsx';
+import AuthModal from './components/AuthModal.jsx';
+import { useMeQuery } from './hooks/useAuth.js';
 
 function App() {
   const [currentPath, setCurrentPath] = useState(window.location.pathname);
   const [searchParams, setSearchParams] = useState(window.location.search);
-  const [activeChord, setActiveChord] = useState(null);
-  const [headerQuery, setHeaderQuery] = useState('');
-  const [user, setUser] = useState(null);
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
-  // Validar sesión activa al cargar
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      fetch('/api/auth/me', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      })
-        .then(res => {
-          if (res.ok) return res.json();
-          localStorage.removeItem('token');
-          throw new Error('Sesión expirada');
-        })
-        .then(data => {
-          setUser(data.user);
-        })
-        .catch(err => {
-          console.error(err);
-        });
-    }
-  }, []);
+  // Valida e inicializa la sesión activa del usuario al arrancar (si existe token)
+  useMeQuery();
 
-  const handleAuthSuccess = (data) => {
-    localStorage.setItem('token', data.token);
-    setUser(data.user);
-  };
-
-  const handleLogout = async () => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      try {
-        await fetch('/api/auth/logout', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-      } catch (e) {
-        console.error(e);
-      }
-    }
-    localStorage.removeItem('token');
-    setUser(null);
-    navigateToHome();
-  };
-
-  // Handle browser back/forward buttons
+  // Escucha cambios de historial (botones de atrás/adelante)
   useEffect(() => {
     const handlePopState = () => {
       setCurrentPath(window.location.pathname);
@@ -75,7 +29,7 @@ function App() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
-  // Intercept local link clicks globally for SPA routing
+  // Intercepta clicks globales en etiquetas <a> para enrutamiento SPA silencioso
   useEffect(() => {
     const handleGlobalClick = (e) => {
       const link = e.target.closest('a');
@@ -83,7 +37,7 @@ function App() {
         const href = link.getAttribute('href');
         const target = link.getAttribute('target');
 
-        // Check if it's an internal link
+        // Solo intercepta links internos relativos
         if (href && href.startsWith('/') && !href.startsWith('//') && target !== '_blank') {
           e.preventDefault();
           window.history.pushState(null, '', href);
@@ -98,34 +52,13 @@ function App() {
     return () => document.removeEventListener('click', handleGlobalClick);
   }, []);
 
-  const navigateToHome = () => {
-    window.history.pushState(null, '', '/');
-    setCurrentPath('/');
-    setSearchParams('');
-    setHeaderQuery('');
+  // Callback para navegación forzada (ej. logo, buscador)
+  const handleNavigate = (path, search = '') => {
+    setCurrentPath(path);
+    setSearchParams(search);
   };
 
-  const handleHeaderSearchInput = (e) => {
-    const value = e.target.value;
-    setHeaderQuery(value);
-    
-    // Redirect to home with search query parameter
-    const searchStr = value.trim() ? `?q=${encodeURIComponent(value.trim())}` : '';
-    window.history.pushState(null, '', `/${searchStr}`);
-    setCurrentPath('/');
-    setSearchParams(searchStr);
-  };
-
-  // Synchronize header query input with URL parameter
-  useEffect(() => {
-    const params = new URLSearchParams(searchParams);
-    const q = params.get('q') || '';
-    if (currentPath === '/') {
-      setHeaderQuery(q);
-    }
-  }, [currentPath, searchParams]);
-
-  // Routing Logic
+  // Lógica de enrutamiento básica
   const cleanPath = currentPath.replace(/^\/+/, '').replace(/\/+$/, '');
   const queryParams = new URLSearchParams(searchParams);
 
@@ -162,90 +95,43 @@ function App() {
           <VersionView
             artistSlug={artistSlug}
             versionSlug={songOrVersionSlug}
-            onChordClick={(chord) => setActiveChord(chord)}
-            onAuthRequired={() => setIsAuthModalOpen(true)}
-            currentUser={user}
           />
         );
       } else {
         viewComponent = <SongView artistSlug={artistSlug} songSlug={songOrVersionSlug} />;
       }
     } else {
-      // 404 / Unknown route -> redirect to home
-      setTimeout(() => navigateToHome(), 0);
+      // 404 / Ruta desconocida -> Redirigir a portada
+      setTimeout(() => {
+        window.history.pushState(null, '', '/');
+        handleNavigate('/', '');
+      }, 0);
     }
   }
+
+  // Sincronizar el buscador del header con el parámetro ?q= del URL
+  const initialSearchQuery = cleanPath === '' ? queryParams.get('q') || '' : '';
 
   return (
     <>
       {/* Cabecera de Navegación Fija */}
-      <header className="app-header">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
-          <div className="header-logo" onClick={navigateToHome} style={{ cursor: 'pointer' }}>
-            <span className="logo-icon">🎸</span>
-            <h1>LaCuerda <span>Offline</span></h1>
-          </div>
-          <nav className="header-nav">
-            <a href="/catalog" className={`nav-link ${cleanPath === 'catalog' ? 'active' : ''}`}>
-              Biblioteca
-            </a>
-            {user && (
-              <a href="/favorites" className={`nav-link ${cleanPath === 'favorites' ? 'active' : ''}`} style={{ color: 'var(--chord-color)', fontWeight: '600' }}>
-                Favoritos ❤️
-              </a>
-            )}
-          </nav>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          {/* Buscador de Cabecera (oculto en la Portada) */}
-          <div className={`header-search-container ${showHeaderSearch ? '' : 'hidden'}`}>
-            <input
-              type="text"
-              placeholder="Buscar artista o canción..."
-              autoComplete="off"
-              value={headerQuery}
-              onChange={handleHeaderSearchInput}
-            />
-            <span className="search-icon">🔍</span>
-          </div>
-
-          {/* Sección de usuario */}
-          <div className="header-user-section">
-            {user ? (
-              <div className="user-profile-menu">
-                <span className="user-nickname-pill">
-                  👤 {user.username}
-                </span>
-                <button onClick={handleLogout} className="logout-btn">
-                  Cerrar Sesión
-                </button>
-              </div>
-            ) : (
-              <button onClick={() => setIsAuthModalOpen(true)} className="login-btn">
-                Acceder
-              </button>
-            )}
-          </div>
-        </div>
-      </header>
+      <Header
+        cleanPath={cleanPath}
+        showHeaderSearch={showHeaderSearch}
+        initialQuery={initialSearchQuery}
+        onNavigate={handleNavigate}
+      />
 
       {/* Contenedor Principal de Vistas */}
       <main className="main-content">
         {viewComponent}
       </main>
 
-      {/* Modal de visualización de acorde */}
-      <ChordModal
-        chordName={activeChord}
-        onClose={() => setActiveChord(null)}
-      />
+      {/* Modal global de visualización de acorde */}
+      <ChordModal />
 
-      {/* Modal de Autenticación */}
-      <AuthModal
-        isOpen={isAuthModalOpen}
-        onClose={() => setIsAuthModalOpen(false)}
-        onSuccess={handleAuthSuccess}
-      />
+      {/* Modal global de Autenticación */}
+      <AuthModal />
     </>
   );
 }

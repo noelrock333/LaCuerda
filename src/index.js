@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
-import { ChordsDatabase, slugify } from './database.js';
+import { ChordsDatabase } from './db/index.js';
+import { slugify } from './utils/slugify.js';
 import {
   fetchWithRetry,
   getArchiveSnapshot,

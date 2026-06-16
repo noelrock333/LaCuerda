@@ -1,28 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { useCatalogQuery } from '../hooks/useSongs.js';
 
 export default function CatalogView() {
-  const [catalog, setCatalog] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const { data: catalog = [], isLoading, error } = useCatalogQuery();
   const [filterQuery, setFilterQuery] = useState('');
 
-  useEffect(() => {
-    async function fetchCatalog() {
-      try {
-        const res = await fetch('/api/songs/grouped-by-artist');
-        if (!res.ok) throw new Error('Failed to fetch catalog');
-        const data = await res.json();
-        setCatalog(data);
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchCatalog();
-  }, []);
-
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="catalog-loading-container">
         <div className="catalog-loading-spinner"></div>
@@ -36,7 +19,7 @@ export default function CatalogView() {
       <div className="catalog-error-container">
         <span className="catalog-error-icon">⚠️</span>
         <h3>Error al cargar catálogo</h3>
-        <p>{error}</p>
+        <p>{error.message}</p>
       </div>
     );
   }

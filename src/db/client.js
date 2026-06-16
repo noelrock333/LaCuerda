@@ -1,79 +1,10 @@
-import { pgTable, serial, text, integer, timestamp, boolean } from 'drizzle-orm/pg-core';
 import { drizzle } from 'drizzle-orm/node-postgres';
-import { eq, sql, ilike, or, and } from 'drizzle-orm';
+import { eq, sql, or, and } from 'drizzle-orm';
 import pg from 'pg';
+import { songs, users, sessions, favorites, failedUrls } from './schema.js';
+import { slugify, getSongSlug } from '../utils/slugify.js';
 
 const { Pool } = pg;
-
-
-
-/**
- * Convierte un texto en un slug amigable de URL al estilo de LaCuerda.net.
- * Ej. "Mon Laferte" -> "mon_laferte"
- * @param {string} text 
- * @returns {string}
- */
-export function slugify(text) {
-  return text
-    .toLowerCase()
-    .normalize('NFD') // Quitar acentos y caracteres especiales
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9]+/g, '_') // Reemplazar caracteres no alfanuméricos por guion bajo
-    .replace(/^_+|_+$/g, ''); // Quitar guiones bajos sobrantes al inicio/final
-}
-
-// Definir el esquema de la tabla utilizando nombres de propiedad en snake_case 
-// para asegurar compatibilidad total con el código existente.
-export const songs = pgTable('songs', {
-  id: serial('id').primaryKey(),
-  artist: text('artist').notNull(),
-  title: text('title').notNull(),
-  version_number: integer('version_number').notNull(),
-  type: text('type').notNull(),
-  chords: text('chords'),
-  contributor: text('contributor').default('Colaborador'),
-  content: text('content').notNull(),
-  source_url: text('source_url').notNull().unique(),
-  archive_url: text('archive_url').notNull(),
-  is_best: boolean('is_best').default(false),
-  scraped_at: timestamp('scraped_at').defaultNow(),
-  song_code: text('song_code'),
-  album: text('album'),
-  year: integer('year'),
-  composers: text('composers'),
-  contributor_id: text('contributor_id')
-});
-
-export const users = pgTable('users', {
-  id: serial('id').primaryKey(),
-  username: text('username').notNull().unique(),
-  password: text('password').notNull(),
-  created_at: timestamp('created_at').defaultNow(),
-  role: text('role').default('user')
-});
-
-export const sessions = pgTable('sessions', {
-  token: text('token').primaryKey(),
-  user_id: integer('user_id').notNull(),
-  created_at: timestamp('created_at').defaultNow()
-});
-
-export const favorites = pgTable('favorites', {
-  id: serial('id').primaryKey(),
-  user_id: integer('user_id').notNull(),
-  song_id: integer('song_id').notNull(),
-  is_awesome: boolean('is_awesome').default(false),
-  created_at: timestamp('created_at').defaultNow()
-});
-
-export const failedUrls = pgTable('failed_urls', {
-  id: serial('id').primaryKey(),
-  url: text('url').notNull().unique(),
-  error_message: text('error_message'),
-  failed_at: timestamp('failed_at').defaultNow(),
-  retry_count: integer('retry_count').default(0),
-  resolved: boolean('resolved').default(false)
-});
 
 export class ChordsDatabase {
   constructor(config) {
@@ -83,7 +14,7 @@ export class ChordsDatabase {
   }
 
   /**
-   * Inicializa la conexión a la base de datos PostgreSQL y crea la tabla si no existe.
+   * Inicializa la conexión a la base de datos PostgreSQL y crea las tablas si no existen.
    */
   async init() {
     this.pool = new Pool({
@@ -191,8 +122,6 @@ export class ChordsDatabase {
 
   /**
    * Verifica si una URL original ya ha sido descargada e insertada en la base de datos.
-   * @param {string} sourceUrl URL original de LaCuerda
-   * @returns {Promise<boolean>}
    */
   async isSongDownloaded(sourceUrl) {
     const result = await this.db
@@ -205,7 +134,6 @@ export class ChordsDatabase {
 
   /**
    * Guarda o actualiza una canción en la base de datos.
-   * @param {Object} song Datos de la canción
    */
   async saveSong(song) {
     await this.db
@@ -251,7 +179,6 @@ export class ChordsDatabase {
 
   /**
    * Obtiene todas las canciones guardadas.
-   * @returns {Promise<Array<Object>>}
    */
   async getAllSongs() {
     return await this.db
@@ -262,8 +189,6 @@ export class ChordsDatabase {
 
   /**
    * Obtiene todas las canciones guardadas de un artista a partir de su slug.
-   * @param {string} artistSlug Slug del artista (ej: mon_laferte)
-   * @returns {Promise<Array<Object>>}
    */
   async getSongsByArtistSlug(artistSlug) {
     const allArtistsResult = await this.db
@@ -284,9 +209,6 @@ export class ChordsDatabase {
 
   /**
    * Comprueba si ya existen versiones locales guardadas para un tema.
-   * @param {string} artistSlug Slug del artista
-   * @param {string} songSlug Slug del tema
-   * @returns {Promise<boolean>}
    */
   async hasSongVersions(artistSlug, songSlug) {
     const songsList = await this.getSongsByArtistSlug(artistSlug);
@@ -300,8 +222,6 @@ export class ChordsDatabase {
 
   /**
    * Resuelve el nombre del artista original a partir de su slug.
-   * @param {string} artistSlug 
-   * @returns {Promise<string|null>}
    */
   async getArtistNameBySlug(artistSlug) {
     const allArtistsResult = await this.db
@@ -314,8 +234,6 @@ export class ChordsDatabase {
 
   /**
    * Busca artistas y canciones de forma independiente (búsqueda en dos columnas).
-   * @param {string} query Parámetro de búsqueda
-   * @returns {Promise<{artists: Array<{name: string, slug: string}>, songs: Array<Object>}>}
    */
   async searchArtistsAndSongs(query) {
     if (!query || query.trim() === '') {
@@ -383,20 +301,14 @@ export class ChordsDatabase {
 
   /**
    * Obtiene artistas únicos que comienzan con una letra específica, ordenados alfabéticamente y paginados.
-   * @param {string} letter Letra inicial (e.g. 'A', 'B', o '0-9' para caracteres especiales/números)
-   * @param {number} limit Límite de resultados (por defecto 50)
-   * @param {number} offset Desplazamiento
-   * @returns {Promise<{artists: Array<{name: string, slug: string}>, total: number}>}
    */
   async getArtistsByLetter(letter, limit = 50, offset = 0) {
     let whereClause;
     const cleanLetter = letter.trim().toUpperCase();
 
     if (cleanLetter === '0-9' || cleanLetter === 'OTHERS' || cleanLetter === '*') {
-      // Artistas que empiezan con número o carácter no alfabético (excluyendo letras con acento y Ñ)
       whereClause = sql`artist ~ '^[^a-zA-ZáéíóúÁÉÍÓÚñÑ]'`;
     } else if (cleanLetter.length === 1 && cleanLetter >= 'A' && cleanLetter <= 'Z') {
-      // Construir regex para la letra considerando variaciones con acentos comunes en español
       let regexPattern = `^[${cleanLetter.toLowerCase()}${cleanLetter.toUpperCase()}`;
       if (cleanLetter === 'A') regexPattern += 'áÁàÀâÂãÃäÄåÅ';
       if (cleanLetter === 'E') regexPattern += 'éÉèÈêÊëË';
@@ -411,7 +323,6 @@ export class ChordsDatabase {
       whereClause = sql`true`;
     }
 
-    // Obtener total de artistas únicos para la paginación
     const totalResult = await this.db
       .select({
         count: sql`count(distinct ${songs.artist})`
@@ -421,7 +332,6 @@ export class ChordsDatabase {
     
     const total = parseInt(totalResult[0]?.count || 0, 10);
 
-    // Obtener la página de artistas únicos
     const artistsResult = await this.db
       .select({
         artist: songs.artist
@@ -443,8 +353,6 @@ export class ChordsDatabase {
 
   /**
    * Obtiene una canción específica por su ID.
-   * @param {number} id ID de la canción
-   * @returns {Promise<Object|undefined>}
    */
   async getSongById(id) {
     const result = await this.db
@@ -597,8 +505,6 @@ export class ChordsDatabase {
 
   /**
    * Registra una URL fallida durante el crawling (o incrementa su contador de reintentos).
-   * @param {string} url La URL que falló
-   * @param {string} errorMessage Mensaje de error descriptivo
    */
   async recordFailedUrl(url, errorMessage) {
     await this.db.execute(sql`
@@ -614,8 +520,6 @@ export class ChordsDatabase {
 
   /**
    * Obtiene todas las URLs fallidas pendientes de reintentar.
-   * @param {boolean} includeResolved Si es true, incluye las ya resueltas
-   * @returns {Promise<Array<Object>>}
    */
   async getFailedUrls(includeResolved = false) {
     if (includeResolved) {
@@ -630,7 +534,6 @@ export class ChordsDatabase {
 
   /**
    * Marca una URL fallida como resuelta exitosamente.
-   * @param {string} url La URL que fue resuelta
    */
   async markFailedUrlResolved(url) {
     await this.db

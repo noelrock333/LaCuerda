@@ -1,6 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import GuitarChord from './GuitarChord';
+import GuitarChord from '../components/GuitarChord';
 import { Maximize2, Minimize2, Printer, FileText, Heart, Pencil, Play, Pause, Type, Sliders, ChevronRight, ArrowUp, Flame } from 'lucide-react';
+import useAuthStore from '../store/useAuthStore.js';
+import useUIStore from '../store/useUIStore.js';
+import { useVersionDetailQuery, useSongDetailQuery, useArtistDetailQuery, useUpdateVersionMutation } from '../hooks/useSongs.js';
+import { useFavoriteStatusQuery, useToggleFavoriteMutation, useAwesomeMutation } from '../hooks/useFavorites.js';
 
 const HISTORY_KEY = 'lacuerda_view_history';
 
@@ -42,7 +46,6 @@ function highlightChords(content, chordsStr) {
   const chordList = chordsStr.split(/\s+/).filter((c) => c.length > 0);
   if (chordList.length === 0) return escapeHtml(content);
 
-  // Sort by length descending to avoid partial matches
   chordList.sort((a, b) => b.length - a.length);
 
   const escapedChords = chordList.map((c) =>
@@ -51,7 +54,6 @@ function highlightChords(content, chordsStr) {
 
   const lines = content.split('\n');
   const highlightedLines = lines.map((line) => {
-    // lines representing strings/tabs: contains | or --
     if (line.includes('|') || line.includes('--')) {
       return `<em>${escapeHtml(line)}</em>`;
     }
@@ -67,17 +69,41 @@ function highlightChords(content, chordsStr) {
   return highlightedLines.join('\n');
 }
 
-export default function VersionView({ artistSlug, versionSlug, onChordClick, onAuthRequired, currentUser }) {
-  const [song, setSong] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
-  const [fontSize, setFontSize] = useState(16);
-  const [isFavorite, setIsFavorite] = useState(false);
-  const [isAwesome, setIsAwesome] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(false);
+export default function VersionView({ artistSlug, versionSlug }) {
+  const currentUser = useAuthStore((state) => state.user);
+  const token = useAuthStore((state) => state.token);
+  const setActiveChord = useUIStore((state) => state.setActiveChord);
+  const setAuthModalOpen = useUIStore((state) => state.setAuthModalOpen);
 
-  // Estados para modo edición
+  // 1. Queries de TanStack Query
+  const { data: song, isLoading: isLoadingSong, error: songError } = useVersionDetailQuery(artistSlug, versionSlug);
+
+  // ID de la canción actual para las peticiones de favoritos y subconsultas
+  const songId = song?.id;
+  const songBaseSlug = song ? song.source_url.split('/').pop().replace(/-\d+\.shtml$/, '').replace(/\.shtml$/, '') : '';
+
+  // Consultas del sidebar habilitadas cuando el objeto principal está cargado
+  const { data: songDetail } = useSongDetailQuery(artistSlug, songBaseSlug);
+  const versionsList = songDetail?.versions || [];
+
+  const { data: artistDetail } = useArtistDetailQuery(artistSlug);
+  const artistSongs = artistDetail?.songs || [];
+
+  const { data: favStatus = { isFavorite: false, isAwesome: false } } = useFavoriteStatusQuery(songId);
+  const isFavorite = favStatus.isFavorite;
+  const isAwesome = favStatus.isAwesome;
+
+  // 2. Mutations
+  const updateVersionMutation = useUpdateVersionMutation();
+  const toggleFavoriteMutation = useToggleFavoriteMutation();
+  const awesomeMutation = useAwesomeMutation();
+
+  // 3. Estados Locales
+  const [fontSize, setFontSize] = useState(16);
+  const [isExpanded, setIsExpanded] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  
+  // Estados para modo edición
   const [editTitle, setEditTitle] = useState('');
   const [editArtist, setEditArtist] = useState('');
   const [editComposers, setEditComposers] = useState('');
@@ -87,9 +113,7 @@ export default function VersionView({ artistSlug, versionSlug, onChordClick, onA
   const [editContent, setEditContent] = useState('');
 
   // Sidebar states
-  const [versionsList, setVersionsList] = useState([]);
-  const [artistSongs, setArtistSongs] = useState([]);
-  const [historyList, setHistoryList] = useState([]);
+  const [historyList, setHistoryList] = useState(getHistory());
   const [activeTab, setActiveTab] = useState('versions'); // 'versions' | 'artist' | 'history'
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
@@ -98,7 +122,7 @@ export default function VersionView({ artistSlug, versionSlug, onChordClick, onA
   const [scrollSpeed, setScrollSpeed] = useState(3);
   const scrollIntervalRef = useRef(null);
 
-  // Floating panel states & helpers
+  // Floating panel states
   const [isFloatingExpanded, setIsFloatingExpanded] = useState(() => {
     const saved = localStorage.getItem('lacuerda_floating_expanded');
     if (saved !== null) return saved === 'true';
@@ -109,6 +133,34 @@ export default function VersionView({ artistSlug, versionSlug, onChordClick, onA
     localStorage.setItem('lacuerda_floating_expanded', isFloatingExpanded);
   }, [isFloatingExpanded]);
 
+  // Sincronizar título del documento e Historial
+  useEffect(() => {
+    if (song) {
+      document.title = `${song.title} (v${song.version_number}) - ${song.artist}`;
+      
+      const currentBaseSlug = song.source_url.split('/').pop().replace(/-\d+\.shtml$/, '').replace(/\.shtml$/, '');
+      addToHistory({
+        id: `${artistSlug}-${currentBaseSlug}-${song.version_number}`,
+        artist: song.artist,
+        title: song.title,
+        version_number: song.version_number,
+        type: song.type,
+        artistSlug,
+        versionSlug
+      });
+      setHistoryList(getHistory());
+
+      // Sincronizar los campos de edición
+      setEditTitle(song.title || '');
+      setEditArtist(song.artist || '');
+      setEditComposers(song.composers || '');
+      setEditAlbum(song.album || '');
+      setEditYear(song.year || '');
+      setEditChords(song.chords || '');
+      setEditContent(song.content || '');
+    }
+  }, [song, artistSlug, versionSlug]);
+
   const scrollToTop = () => {
     const scrollContainer = document.querySelector('.main-content');
     if (scrollContainer) {
@@ -116,91 +168,7 @@ export default function VersionView({ artistSlug, versionSlug, onChordClick, onA
     }
   };
 
-  useEffect(() => {
-    let active = true;
-    setLoading(true);
-    setError(false);
-    setIsScrolling(false);
-
-    const fetchVersion = async () => {
-      try {
-        const response = await fetch(`/api/version/${artistSlug}/${versionSlug}`);
-        if (!response.ok) throw new Error('Version not found');
-        const json = await response.json();
-
-        if (active) {
-          setSong(json);
-          setLoading(false);
-          document.title = `${json.title} (v${json.version_number}) - ${json.artist}`;
-
-          // Consultar estado de favorito si está autenticado
-          const token = localStorage.getItem('token');
-          if (token && json.id) {
-            fetch(`/api/favorites/status/${json.id}`, {
-              headers: {
-                'Authorization': `Bearer ${token}`
-              }
-            })
-              .then(res => res.ok ? res.json() : { isFavorite: false, isAwesome: false })
-              .then(data => {
-                if (active) {
-                  setIsFavorite(data.isFavorite);
-                  setIsAwesome(data.isAwesome || false);
-                }
-              })
-              .catch(err => console.error(err));
-          }
-
-          const songBaseSlug = getSongSlugFromUrl(json.source_url);
-
-          // Add to history
-          addToHistory({
-            id: `${artistSlug}-${songBaseSlug}-${json.version_number}`,
-            artist: json.artist,
-            title: json.title,
-            version_number: json.version_number,
-            type: json.type,
-            artistSlug,
-            versionSlug
-          });
-          setHistoryList(getHistory());
-
-          // Fetch other versions
-          fetch(`/api/songs/${artistSlug}/${songBaseSlug}`)
-            .then((res) => (res.ok ? res.json() : null))
-            .then((data) => {
-              if (data && active) {
-                setVersionsList(data.versions || []);
-              }
-            })
-            .catch((err) => console.error('Error fetching alternative versions:', err));
-
-          // Fetch artist's other songs
-          fetch(`/api/artists/${artistSlug}`)
-            .then((res) => (res.ok ? res.json() : null))
-            .then((data) => {
-              if (data && active) {
-                setArtistSongs(data.songs || []);
-              }
-            })
-            .catch((err) => console.error('Error fetching artist songs:', err));
-        }
-      } catch (err) {
-        console.error(err);
-        if (active) {
-          setError(true);
-          setLoading(false);
-        }
-      }
-    };
-
-    fetchVersion();
-    return () => {
-      active = false;
-    };
-  }, [artistSlug, versionSlug]);
-
-  // Autoscroll animation effect
+  // Autoscroll animation
   useEffect(() => {
     if (!isScrolling) return;
 
@@ -208,13 +176,11 @@ export default function VersionView({ artistSlug, versionSlug, onChordClick, onA
     const scrollContainer = document.querySelector('.main-content');
     if (!scrollContainer) return;
 
-    // Use a float accumulator initialized to the current scroll position
     let scrollAccumulator = scrollContainer.scrollTop;
 
     const scrollStep = () => {
       if (!active) return;
 
-      // Sync accumulator if manual scrolling happened during autoscroll
       if (Math.abs(scrollContainer.scrollTop - Math.round(scrollAccumulator)) > 1) {
         scrollAccumulator = scrollContainer.scrollTop;
       }
@@ -249,80 +215,49 @@ export default function VersionView({ artistSlug, versionSlug, onChordClick, onA
     setIsScrolling((prev) => !prev);
   };
 
-  useEffect(() => {
-    if (song) {
-      setEditTitle(song.title || '');
-      setEditArtist(song.artist || '');
-      setEditComposers(song.composers || '');
-      setEditAlbum(song.album || '');
-      setEditYear(song.year || '');
-      setEditChords(song.chords || '');
-      setEditContent(song.content || '');
-    }
-  }, [song]);
-
-  const handleSaveChanges = async () => {
-    const token = localStorage.getItem('token');
-    if (!token) return;
-
-    try {
-      const res = await fetch(`/api/version/${song.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          title: editTitle,
-          artist: editArtist,
-          composers: editComposers,
-          album: editAlbum,
-          year: editYear ? parseInt(editYear, 10) : null,
-          chords: editChords,
-          content: editContent
-        })
-      });
-
-      if (res.ok) {
-        setSong(prev => ({
-          ...prev,
-          title: editTitle,
-          artist: editArtist,
-          composers: editComposers,
-          album: editAlbum,
-          year: editYear ? parseInt(editYear, 10) : null,
-          chords: editChords,
-          content: editContent
-        }));
-        setIsEditing(false);
-      } else {
-        const errorData = await res.json();
-        alert(`Error al guardar: ${errorData.error || 'Intenta de nuevo'}`);
+  const handleSaveChanges = () => {
+    updateVersionMutation.mutate({
+      id: song.id,
+      data: {
+        title: editTitle,
+        artist: editArtist,
+        composers: editComposers,
+        album: editAlbum,
+        year: editYear ? parseInt(editYear, 10) : null,
+        chords: editChords,
+        content: editContent
       }
-    } catch (err) {
-      console.error(err);
-      alert('Error de conexión al guardar los cambios.');
-    }
+    }, {
+      onSuccess: () => {
+        setIsEditing(false);
+      },
+      onError: (err) => {
+        alert(`Error al guardar: ${err.message || 'Intenta de nuevo'}`);
+      }
+    });
   };
 
   const handleTabClick = (e) => {
     if (e.target.tagName === 'A') {
       e.preventDefault();
-      if (onChordClick) {
-        onChordClick(e.target.textContent);
-      }
+      setActiveChord(e.target.textContent);
     }
   };
 
-  // Helper to extract song slug from url for the breadcrumb
-  const getSongSlugFromUrl = (url) => {
-    if (!url) return '';
-    const parts = url.split('/');
-    const lastPart = parts[parts.length - 1];
-    return lastPart.replace(/-\d+\.shtml$/, '').replace(/\.shtml$/, '');
+  const toggleFavorite = () => {
+    if (!token) {
+      setAuthModalOpen(true);
+      return;
+    }
+    toggleFavoriteMutation.mutate({ songId, isFavorite });
   };
 
-  if (loading) {
+  const toggleAwesome = () => {
+    if (!token) return;
+    awesomeMutation.mutate({ songId, isAwesome: !isAwesome });
+  };
+
+  if (isLoadingSong) {
     return (
       <section id="view-version" className="view-section">
         <header className="view-header">
@@ -336,7 +271,7 @@ export default function VersionView({ artistSlug, versionSlug, onChordClick, onA
     );
   }
 
-  if (error || !song) {
+  if (songError || !song) {
     return (
       <section id="view-version" className="view-section">
         <header className="view-header">
@@ -350,71 +285,6 @@ export default function VersionView({ artistSlug, versionSlug, onChordClick, onA
     );
   }
 
-  const toggleFavorite = async () => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      if (onAuthRequired) {
-        onAuthRequired();
-      }
-      return;
-    }
-    if (!song) return;
-
-    const method = isFavorite ? 'DELETE' : 'POST';
-    const url = isFavorite ? `/api/favorites/${song.id}` : '/api/favorites';
-
-    const headers = {
-      'Authorization': `Bearer ${token}`
-    };
-
-    let body;
-    if (!isFavorite) {
-      headers['Content-Type'] = 'application/json';
-      body = JSON.stringify({ song_id: song.id });
-    }
-
-    try {
-      const res = await fetch(url, {
-        method,
-        headers,
-        body
-      });
-
-      if (res.ok) {
-        setIsFavorite(!isFavorite);
-        if (isFavorite) {
-          setIsAwesome(false);
-        }
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const toggleAwesome = async () => {
-    const token = localStorage.getItem('token');
-    if (!token || !song) return;
-
-    const newAwesome = !isAwesome;
-    try {
-      const res = await fetch(`/api/favorites/awesome/${song.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ is_awesome: newAwesome })
-      });
-
-      if (res.ok) {
-        setIsAwesome(newAwesome);
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const songBaseSlug = getSongSlugFromUrl(song.source_url);
   const chordList = song.chords
     ? song.chords.split(/\s+/).filter((c) => c.length > 0)
     : [];
@@ -472,7 +342,6 @@ export default function VersionView({ artistSlug, versionSlug, onChordClick, onA
                   typeLabel = 'Bajo';
                 }
 
-                // Rating bars
                 const numBars = 3 + (ver.id % 3);
                 const bars = Array.from({ length: 5 }).map((_, i) => (
                   <span
@@ -639,7 +508,7 @@ export default function VersionView({ artistSlug, versionSlug, onChordClick, onA
             </div>
           </header>
 
-          {/* Divisor con controles integrados (Expandir, Imprimir, Texto Plano, Favoritos y Editar) */}
+          {/* Divisor con controles integrados */}
           <div className="controls-divider-container">
             <div className="controls-divider-line"></div>
             <div className="controls-divider-buttons">
@@ -675,6 +544,7 @@ export default function VersionView({ artistSlug, versionSlug, onChordClick, onA
                 onClick={toggleFavorite}
                 data-tooltip={isFavorite ? "Quitar de favoritos" : "Marcar favorito"}
                 title={isFavorite ? "Quitar de favoritos" : "Marcar como favorito"}
+                disabled={toggleFavoriteMutation.isPending}
               >
                 <Heart size={18} fill={isFavorite ? "var(--chord-color, #e11d48)" : "none"} />
               </button>
@@ -685,6 +555,7 @@ export default function VersionView({ artistSlug, versionSlug, onChordClick, onA
                   data-tooltip={isAwesome ? "Quitar de chidas" : "Marcar como chida 🔥"}
                   title={isAwesome ? "Quitar marca chida (mejor calidad)" : "Marcar como chida (mejor calidad / interpretación)"}
                   style={{ color: isAwesome ? '#f97316' : 'var(--text-muted)' }}
+                  disabled={awesomeMutation.isPending}
                 >
                   <Flame size={18} fill={isAwesome ? "#f97316" : "none"} />
                 </button>
@@ -780,8 +651,12 @@ export default function VersionView({ artistSlug, versionSlug, onChordClick, onA
               </div>
               
               <div className="edit-form-actions">
-                <button className="btn btn-save" onClick={handleSaveChanges}>
-                  Guardar Cambios
+                <button 
+                  className="btn btn-save" 
+                  onClick={handleSaveChanges}
+                  disabled={updateVersionMutation.isPending}
+                >
+                  {updateVersionMutation.isPending ? 'Guardando...' : 'Guardar Cambios'}
                 </button>
                 <button className="btn btn-cancel" onClick={() => setIsEditing(false)}>
                   Cancelar
@@ -934,7 +809,7 @@ export default function VersionView({ artistSlug, versionSlug, onChordClick, onA
                       <div
                         key={`${chord}-${index}`}
                         className="chord-diagram-card"
-                        onClick={() => onChordClick && onChordClick(chord)}
+                        onClick={() => setActiveChord(chord)}
                         title={`Ver variaciones de ${chord}`}
                       >
                         <span className="chord-diagram-name">{chord}</span>

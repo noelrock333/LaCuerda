@@ -1,4 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useDebounce } from '../hooks/useDebounce.js';
+import { useSearchQuery } from '../hooks/useSongs.js';
 
 const ALPHABET_LETTERS = [
   'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'Ñ', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '0-9'
@@ -6,55 +8,29 @@ const ALPHABET_LETTERS = [
 
 export default function HomeView({ initialQuery = '' }) {
   const [query, setQuery] = useState(initialQuery);
-  const [results, setResults] = useState({ artists: [], songs: [] });
-  const [showResults, setShowResults] = useState(false);
-  const searchTimeoutRef = useRef(null);
+  const debouncedQuery = useDebounce(query, 250);
+  
+  // Consumo de Query con React Query y Debounce
+  const { data: results = { artists: [], songs: [] }, isLoading } = useSearchQuery(debouncedQuery);
 
-  const performSearch = async (val) => {
-    try {
-      const response = await fetch(`/api/search?q=${encodeURIComponent(val.trim())}`);
-      if (!response.ok) throw new Error('Search failed');
-      const data = await response.json();
-      setResults(data);
-      setShowResults(true);
-    } catch (err) {
-      console.error("Search query error:", err);
-    }
-  };
-
-  // React to initialQuery updates from parent/URL
+  // Sincronizar estado cuando el query inicial cambia
   useEffect(() => {
     setQuery(initialQuery);
-    if (initialQuery.trim().length >= 2) {
-      performSearch(initialQuery);
-    } else {
-      setShowResults(false);
-    }
   }, [initialQuery]);
 
   const handleSearchChange = (e) => {
     const val = e.target.value;
     setQuery(val);
 
-    if (searchTimeoutRef.current) {
-      clearTimeout(searchTimeoutRef.current);
-    }
-
     if (val.trim().length < 2) {
-      setShowResults(false);
       window.history.replaceState(null, '', '/');
       return;
     }
 
-    // Update search parameter silently
+    // Actualizar el URL de forma silenciosa para soportar HMR e historial
     window.history.replaceState(null, '', `/?q=${encodeURIComponent(val.trim())}`);
-
-    searchTimeoutRef.current = setTimeout(() => {
-      performSearch(val);
-    }, 250);
   };
 
-  // Helper to get slugify client side
   const getArtistSlug = (artistName) => {
     return artistName
       .toLowerCase()
@@ -64,12 +40,13 @@ export default function HomeView({ initialQuery = '' }) {
       .replace(/^_+|_+$/g, '');
   };
 
-  // Helper to extract song slug from url
   const getSongSlugFromUrl = (url) => {
     const parts = url.split('/');
     const lastPart = parts[parts.length - 1];
     return lastPart.replace(/-\d+\.shtml$/, '').replace(/\.shtml$/, '');
   };
+
+  const showResults = query.trim().length >= 2;
 
   return (
     <section id="view-home" className="view-section">
@@ -88,7 +65,9 @@ export default function HomeView({ initialQuery = '' }) {
             value={query}
             onChange={handleSearchChange}
           />
-          <span className="search-btn-icon">🔍</span>
+          <span className="search-btn-icon">
+            {isLoading ? '⏳' : '🔍'}
+          </span>
         </div>
 
         <div className="alphabet-nav">
@@ -109,7 +88,9 @@ export default function HomeView({ initialQuery = '' }) {
           <div className="results-column">
             <h3>Artistas Coincidentes</h3>
             <div className="results-list" id="home-artists-list">
-              {results.artists.length === 0 ? (
+              {isLoading && debouncedQuery !== query ? (
+                <div className="list-loading">Buscando...</div>
+              ) : results.artists.length === 0 ? (
                 <div className="list-empty">Sin artistas coincidentes</div>
               ) : (
                 results.artists.map(art => (
@@ -126,7 +107,9 @@ export default function HomeView({ initialQuery = '' }) {
           <div className="results-column">
             <h3>Canciones Coincidentes</h3>
             <div className="results-list" id="home-songs-list">
-              {results.songs.length === 0 ? (
+              {isLoading && debouncedQuery !== query ? (
+                <div className="list-loading">Buscando...</div>
+              ) : results.songs.length === 0 ? (
                 <div className="list-empty">Sin canciones coincidentes</div>
               ) : (
                 results.songs.map(song => {
