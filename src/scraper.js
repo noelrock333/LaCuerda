@@ -196,10 +196,112 @@ export function parseLaCuerdaPage(html, sourceUrl, archiveUrl) {
       versionNumber = parseInt(matchVersion[1], 10);
     }
 
-    // Extraer tipo de tablatura (otipo), acordes y colaborador desde los scripts
+    // Selector de cabecera flexible (tH3 / t_h3)
+    const $tH3 = $('#tH3').length > 0 ? $('#tH3') : $('#t_h3');
+    let composers = null;
+    let album = null;
+    let year = null;
+
+    if ($tH3.length > 0) {
+      const hasModernClasses = $tH3.find('.tCompo').length > 0 || $tH3.find('.tAlbum').length > 0;
+      
+      if (hasModernClasses) {
+        // Formato moderno (clases tCompo / tAlbum)
+        const emText = $tH3.find('em').text().trim();
+        const matchYear = emText.match(/\[?(\d{4})\]?/);
+        if (matchYear) {
+          year = parseInt(matchYear[1], 10);
+        }
+
+        const htmlContent = $tH3.html() || '';
+        const htmlParts = htmlContent.split(/<br\s*\/?>/i);
+        if (htmlParts.length >= 1) {
+          composers = cheerio.load(htmlParts[0]).text().trim();
+          if (composers) {
+            composers = composers.replace(/\s*corregir/gi, '').trim();
+          }
+          if (!composers) composers = null;
+        }
+        if (htmlParts.length >= 2) {
+          const $albumPart = cheerio.load(htmlParts[1]);
+          $albumPart('em').remove();
+          album = $albumPart.text().trim();
+          if (!album) album = null;
+        }
+      } else {
+        // Formato clásico (con strong AUTOR: y ALBUM:)
+        const text = $tH3.text().trim();
+        
+        // Buscar compositores
+        const composersMatch = text.match(/AUTOR:\s*([^\n\r]+)/i);
+        if (composersMatch) {
+          composers = composersMatch[1].replace(/\s*corregir/gi, '').trim();
+          if (!composers) composers = null;
+        }
+        
+        // Buscar album y año
+        const albumMatch = text.match(/ALBUM:\s*([^\n\r]+)/i);
+        if (albumMatch) {
+          const rawAlbum = albumMatch[1].trim();
+          const yearMatch = rawAlbum.match(/\((\d{4})\)/) || rawAlbum.match(/\[(\d{4})\]/);
+          if (yearMatch) {
+            year = parseInt(yearMatch[1], 10);
+            album = rawAlbum.replace(yearMatch[0], '').trim();
+          } else {
+            album = rawAlbum;
+          }
+        }
+      }
+    }
+
+    // Extraer código de canción robustamente
+    let songCode = null;
+    const $tH4Code = $('#tH4 #tCode').length > 0 ? $('#tH4 #tCode') : $('#t_h4 #tCode');
+    const $tH2Div = $('#tH2 div').length > 0 ? $('#tH2 div') : $('#t_h2 div');
+    const domCode = ($tH4Code.text() || $tH2Div.text() || '').trim();
+    if (domCode && domCode.length < 30 && domCode.length > 2) {
+      songCode = domCode;
+    }
+
+    // Extraer colaborador robustamente (tColab / t_colab / tH4 / t_h4)
+    let contributor = 'Colaborador';
+    let contributorId = null;
+
+    const $tColab = $('#tColab').length > 0 ? $('#tColab') : $('#t_colab');
+    const $tH4 = $('#tH4').length > 0 ? $('#tH4') : $('#t_h4');
+    
+    let colabContainer = $tColab;
+    if (colabContainer.length === 0 && $tH4.length > 0) {
+      $tH4.find('div').each((i, el) => {
+        if ($(el).text().toLowerCase().includes('enviado por')) {
+          colabContainer = $(el);
+        }
+      });
+      if (colabContainer.length === 0 && $tH4.text().toLowerCase().includes('enviado por')) {
+        colabContainer = $tH4;
+      }
+    }
+
+    if (colabContainer.length > 0) {
+      const $a = colabContainer.find('a');
+      if ($a.length > 0) {
+        contributor = $a.first().text().trim();
+        const href = $a.first().attr('href') || '';
+        const matchId = href.match(/['"]([^'"]+)['"]/);
+        if (matchId) {
+          contributorId = matchId[1];
+        }
+      } else {
+        const textVal = colabContainer.text().replace(/enviado por/i, '').trim();
+        if (textVal) {
+          contributor = textVal;
+        }
+      }
+    }
+
+    // Extraer tipo de tablatura (otipo), acordes y colaborador desde scripts
     let type = 'chords';
     let chords = '';
-    let contributor = 'Colaborador';
 
     $('script').each((i, el) => {
       const scriptText = $(el).html() || '';
@@ -220,10 +322,28 @@ export function parseLaCuerdaPage(html, sourceUrl, archiveUrl) {
         chords = matchOdes[1].trim().replace(/@/g, '#');
       }
 
-      // Buscar colaborador: oclb = 'U:lpetronio;lpetronio'
-      const matchOclb = scriptText.match(/oclb\s*=\s*['"]([^'"]+)['"]/);
-      if (matchOclb) {
-        contributor = matchOclb[1].split(';')[0].replace(/^U:/i, '').trim();
+      // Buscar ocod en scripts (código de canción)
+      if (!songCode) {
+        const matchOcod = scriptText.match(/ocod\s*=\s*['"]([^'"]+)['"]/);
+        if (matchOcod) {
+          songCode = matchOcod[1].trim();
+        }
+      }
+
+      // Fallback a oclb en scripts si no pudimos extraerlo de tColab
+      if (contributor === 'Colaborador' || !contributor || !contributorId) {
+        const matchOclb = scriptText.match(/oclb\s*=\s*['"]([^'"]+)['"]/);
+        if (matchOclb) {
+          const parts = matchOclb[1].split(';');
+          if ((contributor === 'Colaborador' || !contributor) && parts[0]) {
+            contributor = parts[0].replace(/^U:/i, '').trim();
+          }
+          if (!contributorId && parts[1]) {
+            contributorId = parts[1].trim();
+          } else if (!contributorId) {
+            contributorId = matchOclb[1].trim();
+          }
+        }
       }
     });
 
@@ -296,7 +416,12 @@ export function parseLaCuerdaPage(html, sourceUrl, archiveUrl) {
         contributor: contributor || 'Colaborador',
         content: content.trim(),
         source_url: sourceUrl,
-        archive_url: archiveUrl
+        archive_url: archiveUrl,
+        song_code: songCode,
+        album: album,
+        year: year,
+        composers: composers,
+        contributor_id: contributorId
       }
     };
   }

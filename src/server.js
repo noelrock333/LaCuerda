@@ -204,7 +204,12 @@ fastify.get('/api/songs/:artistSlug/:songSlug', async (request, reply) => {
         content: song.content,
         is_best: song.is_best || false,
         source_url: song.source_url,
-        archive_url: song.archive_url
+        archive_url: song.archive_url,
+        song_code: song.song_code,
+        album: song.album,
+        year: song.year,
+        composers: song.composers,
+        contributor_id: song.contributor_id
       }))
     };
   } catch (error) {
@@ -261,6 +266,118 @@ fastify.get('/api/version/:artistSlug/:versionSlug', async (request, reply) => {
     reply.status(500).send({ error: 'Error al recuperar versión' });
   }
 });
+
+// Helper para construir la cabecera ASCII en el backend
+function generateTxtHeaderBackend(song) {
+  const lineLength = 70;
+  
+  const padLine = (label, value) => {
+    const cleanVal = (value || '').toUpperCase();
+    const contentStr = `| ${label}: ${cleanVal}`;
+    const spacesNeed = lineLength - contentStr.length - 1;
+    return contentStr + ' '.repeat(Math.max(0, spacesNeed)) + '|';
+  };
+
+  const titleLine = "|           TABLATURAS Y ACORDES DE MÚSICA EN ESPAÑOL                |";
+  const middleBorder = "+-------------------------- lacuerda.net ----------------------------+";
+  const headerBorder = "======================================================================";
+  
+  let idCode = song.song_code || 'version';
+  if (!idCode && song.source_url) {
+    const parts = song.source_url.split('/');
+    const filePart = parts[parts.length - 1].replace(/\.shtml$/, '');
+    idCode = filePart;
+  }
+  const typeLabel = (song.type || 'chords').toUpperCase() === 'TAB' ? 'TAB' : 'ACO';
+  
+  const versionLabel = `-${typeLabel}-${idCode}-+`;
+  const neededDashes = lineLength - versionLabel.length;
+  let dividerLine = '+';
+  if (neededDashes > 1) {
+    dividerLine += '-'.repeat(neededDashes - 1) + versionLabel;
+  } else {
+    dividerLine = `+-------------------------------------------------------${typeLabel}-${idCode}-+`;
+  }
+  
+  if (dividerLine.length > 70) {
+    dividerLine = dividerLine.substring(0, 69) + '+';
+  } else if (dividerLine.length < 70) {
+    dividerLine = dividerLine.substring(0, dividerLine.length - 1) + '-'.repeat(70 - dividerLine.length) + '+';
+  }
+
+  const headerLines = [
+    headerBorder,
+    titleLine,
+    middleBorder,
+    padLine("ARTISTA", song.artist),
+    padLine("CANCION", song.title)
+  ];
+
+  if (song.composers) {
+    headerLines.push(padLine("AUTOR", song.composers));
+  }
+  if (song.album) {
+    const albumVal = song.album + (song.year ? ` [${song.year}]` : '');
+    headerLines.push(padLine("ALBUM", albumVal));
+  }
+
+  headerLines.push(dividerLine);
+  headerLines.push(padLine("TRANS", song.contributor));
+  headerLines.push(headerBorder);
+
+  return headerLines.join('\n');
+}
+
+// 4.5. Obtener la versión en texto plano (TXT) tal como viene en LaCuerda
+// GET /TXT/:artistSlug/:versionSlug
+fastify.get('/TXT/:artistSlug/:versionSlug', async (request, reply) => {
+  const { artistSlug, versionSlug } = request.params;
+  try {
+    const songs = await db.getSongsByArtistSlug(artistSlug);
+    const artistName = await db.getArtistNameBySlug(artistSlug);
+    
+    if (!artistName) {
+      return reply.status(404).send('Artista no encontrado');
+    }
+
+    // Quitar .txt y .shtml si existen
+    const cleanSlug = versionSlug.replace(/\.txt$/i, '').replace(/\.shtml$/i, '');
+
+    // Desglosar nombre base de canción y número de versión
+    let baseSongName = cleanSlug;
+    let versionNumber = 1;
+
+    const match = cleanSlug.match(/^(.+)-(\d+)$/);
+    if (match) {
+      baseSongName = match[1];
+      versionNumber = parseInt(match[2], 10);
+    }
+
+    // Buscar coincidencia exacta
+    const matchSong = songs.find(song => {
+      const slug = getSongSlug(song.source_url);
+      return slug === baseSongName && song.version_number === versionNumber;
+    });
+
+    const finalSong = matchSong || songs.find(song => getSongSlug(song.source_url) === baseSongName);
+
+    if (!finalSong) {
+      return reply.status(404).send('Versión no encontrada');
+    }
+
+    // Generar archivo de texto plano
+    const header = generateTxtHeaderBackend(finalSong);
+    const textPlainContent = `${header}\n\n${finalSong.content}`;
+
+    return reply
+      .type('text/plain; charset=utf-8')
+      .send(textPlainContent);
+  } catch (error) {
+    fastify.log.error(error);
+    reply.status(500).send('Error al recuperar versión en formato texto plano');
+  }
+});
+
 
 // ==========================================================================
 // MÉTODOS DE SEGURIDAD & AUTENTICACIÓN
@@ -468,8 +585,8 @@ fastify.get('/api/favorites/status/:songId', async (request, reply) => {
 // Cualquier ruta que no coincida con archivos estáticos o endpoints API
 // servirá el shell 'index.html' para permitir que el router del cliente maneje la ruta.
 fastify.setNotFoundHandler(async (request, reply) => {
-  if (request.url.startsWith('/api/')) {
-    reply.status(404).send({ error: 'Endpoint API no encontrado' });
+  if (request.url.startsWith('/api/') || request.url.startsWith('/TXT/')) {
+    reply.status(404).send('No encontrado / Not Found');
     return;
   }
   

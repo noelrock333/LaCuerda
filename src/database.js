@@ -36,7 +36,12 @@ export const songs = pgTable('songs', {
   source_url: text('source_url').notNull().unique(),
   archive_url: text('archive_url').notNull(),
   is_best: boolean('is_best').default(false),
-  scraped_at: timestamp('scraped_at').defaultNow()
+  scraped_at: timestamp('scraped_at').defaultNow(),
+  song_code: text('song_code'),
+  album: text('album'),
+  year: integer('year'),
+  composers: text('composers'),
+  contributor_id: text('contributor_id')
 });
 
 export const users = pgTable('users', {
@@ -89,6 +94,9 @@ export class ChordsDatabase {
 
     this.db = drizzle(this.pool);
 
+    // Habilitar la extensión unaccent para búsquedas sin acentos
+    await this.db.execute(sql`CREATE EXTENSION IF NOT EXISTS unaccent`);
+
     // Asegurarse de que la tabla exista
     await this.db.execute(sql`
       CREATE TABLE IF NOT EXISTS songs (
@@ -114,6 +122,16 @@ export class ChordsDatabase {
     // Añadir columna is_best si no existe (migración en caliente)
     await this.db.execute(sql`
       ALTER TABLE songs ADD COLUMN IF NOT EXISTS is_best BOOLEAN DEFAULT FALSE
+    `);
+
+    // Añadir columnas de metadatos complementarios e información del colaborador
+    await this.db.execute(sql`
+      ALTER TABLE songs 
+      ADD COLUMN IF NOT EXISTS song_code VARCHAR(100),
+      ADD COLUMN IF NOT EXISTS album VARCHAR(255),
+      ADD COLUMN IF NOT EXISTS year INTEGER,
+      ADD COLUMN IF NOT EXISTS composers VARCHAR(512),
+      ADD COLUMN IF NOT EXISTS contributor_id VARCHAR(100)
     `);
 
     // Crear tabla users
@@ -190,7 +208,12 @@ export class ChordsDatabase {
         content: song.content,
         source_url: song.source_url,
         archive_url: song.archive_url,
-        is_best: song.is_best || false
+        is_best: song.is_best || false,
+        song_code: song.song_code || null,
+        album: song.album || null,
+        year: song.year || null,
+        composers: song.composers || null,
+        contributor_id: song.contributor_id || null
       })
       .onConflictDoUpdate({
         target: songs.source_url,
@@ -204,7 +227,12 @@ export class ChordsDatabase {
           content: song.content,
           archive_url: song.archive_url,
           is_best: song.is_best || false,
-          scraped_at: sql`CURRENT_TIMESTAMP`
+          scraped_at: sql`CURRENT_TIMESTAMP`,
+          song_code: song.song_code || null,
+          album: song.album || null,
+          year: song.year || null,
+          composers: song.composers || null,
+          contributor_id: song.contributor_id || null
         }
       });
   }
@@ -281,8 +309,32 @@ export class ChordsDatabase {
     if (!query || query.trim() === '') {
       return { artists: [], songs: [] };
     }
-    
-    const searchPattern = `%${query.trim()}%`;
+
+    // Separar en palabras normalizadas (alfanuméricas y sin acentos)
+    const cleanWords = query
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .split(/[^a-z0-9]+/)
+      .filter(word => word.length > 0);
+
+    if (cleanWords.length === 0) {
+      return { artists: [], songs: [] };
+    }
+
+    // Generar condiciones: todas las palabras buscadas deben coincidir parcial o totalmente
+    const songConditions = cleanWords.map(word => {
+      const pattern = `%${word}%`;
+      return or(
+        sql`regexp_replace(lower(unaccent(${songs.title})), '[^a-z0-9]', '', 'g') LIKE ${pattern}`,
+        sql`regexp_replace(lower(unaccent(${songs.artist})), '[^a-z0-9]', '', 'g') LIKE ${pattern}`
+      );
+    });
+
+    const artistConditions = cleanWords.map(word => {
+      const pattern = `%${word}%`;
+      return sql`regexp_replace(lower(unaccent(${songs.artist})), '[^a-z0-9]', '', 'g') LIKE ${pattern}`;
+    });
 
     // 1. Encontrar canciones únicas usando DISTINCT ON
     const songsResult = await this.db
@@ -296,7 +348,7 @@ export class ChordsDatabase {
         source_url: songs.source_url
       })
       .from(songs)
-      .where(or(ilike(songs.title, searchPattern), ilike(songs.artist, searchPattern)))
+      .where(and(...songConditions))
       .orderBy(songs.artist, songs.title, songs.id);
 
     // 2. Encontrar artistas
@@ -305,7 +357,7 @@ export class ChordsDatabase {
         artist: songs.artist
       })
       .from(songs)
-      .where(ilike(songs.artist, searchPattern))
+      .where(and(...artistConditions))
       .groupBy(songs.artist)
       .orderBy(songs.artist);
 
@@ -459,7 +511,12 @@ export class ChordsDatabase {
         contributor: songs.contributor,
         source_url: songs.source_url,
         archive_url: songs.archive_url,
-        is_best: songs.is_best
+        is_best: songs.is_best,
+        song_code: songs.song_code,
+        album: songs.album,
+        year: songs.year,
+        composers: songs.composers,
+        contributor_id: songs.contributor_id
       })
       .from(favorites)
       .innerJoin(songs, eq(favorites.song_id, songs.id))

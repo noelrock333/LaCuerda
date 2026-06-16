@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import GuitarChord from './GuitarChord';
+import { Maximize2, Minimize2, Printer, FileText, Heart } from 'lucide-react';
 
 const HISTORY_KEY = 'lacuerda_view_history';
 
@@ -66,12 +67,13 @@ function highlightChords(content, chordsStr) {
   return highlightedLines.join('\n');
 }
 
-export default function VersionView({ artistSlug, versionSlug, onChordClick }) {
+export default function VersionView({ artistSlug, versionSlug, onChordClick, onAuthRequired }) {
   const [song, setSong] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [fontSize, setFontSize] = useState(16);
   const [isFavorite, setIsFavorite] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   // Sidebar states
   const [versionsList, setVersionsList] = useState([]);
@@ -262,19 +264,32 @@ export default function VersionView({ artistSlug, versionSlug, onChordClick }) {
 
   const toggleFavorite = async () => {
     const token = localStorage.getItem('token');
-    if (!token || !song) return;
+    if (!token) {
+      if (onAuthRequired) {
+        onAuthRequired();
+      }
+      return;
+    }
+    if (!song) return;
 
     const method = isFavorite ? 'DELETE' : 'POST';
     const url = isFavorite ? `/api/favorites/${song.id}` : '/api/favorites';
 
+    const headers = {
+      'Authorization': `Bearer ${token}`
+    };
+
+    let body;
+    if (!isFavorite) {
+      headers['Content-Type'] = 'application/json';
+      body = JSON.stringify({ song_id: song.id });
+    }
+
     try {
       const res = await fetch(url, {
         method,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: isFavorite ? undefined : JSON.stringify({ song_id: song.id })
+        headers,
+        body
       });
 
       if (res.ok) {
@@ -293,9 +308,9 @@ export default function VersionView({ artistSlug, versionSlug, onChordClick }) {
   const highlightedHtml = highlightChords(song.content, song.chords);
 
   return (
-    <div className="version-page-layout">
+    <div className={`version-page-layout ${isExpanded ? 'expanded' : ''}`}>
       {/* Botón de toggle para móviles */}
-      <button 
+      <button
         className="sidebar-toggle-btn"
         onClick={() => setIsSidebarOpen(!isSidebarOpen)}
       >
@@ -305,26 +320,26 @@ export default function VersionView({ artistSlug, versionSlug, onChordClick }) {
       {/* Barra lateral izquierda */}
       <aside className={`version-sidebar ${isSidebarOpen ? 'open' : ''}`}>
         <nav className="sidebar-tabs">
-          <button 
+          <button
             className={`sidebar-tab-btn ${activeTab === 'versions' ? 'active' : ''}`}
             onClick={() => setActiveTab('versions')}
           >
             Versiones
           </button>
-          <button 
+          <button
             className={`sidebar-tab-btn ${activeTab === 'artist' ? 'active' : ''}`}
             onClick={() => setActiveTab('artist')}
           >
             del Artista
           </button>
-          <button 
+          <button
             className={`sidebar-tab-btn ${activeTab === 'history' ? 'active' : ''}`}
             onClick={() => setActiveTab('history')}
           >
             Historial
           </button>
         </nav>
-        
+
         <div className="sidebar-content">
           {activeTab === 'versions' && (
             <ul className="sidebar-list">
@@ -332,7 +347,7 @@ export default function VersionView({ artistSlug, versionSlug, onChordClick }) {
                 const urlParts = ver.source_url.split('/');
                 const filename = urlParts[urlParts.length - 1];
                 const isActive = filename === versionSlug;
-                
+
                 let typeIcon = '🎼';
                 let typeLabel = 'Acordes';
                 if (ver.type === 'tab') {
@@ -354,8 +369,8 @@ export default function VersionView({ artistSlug, versionSlug, onChordClick }) {
 
                 return (
                   <li key={ver.id}>
-                    <a 
-                      href={`/${artistSlug}/${filename}`} 
+                    <a
+                      href={`/${artistSlug}/${filename}`}
                       className={`sidebar-item-link ${isActive ? 'active' : ''}`}
                       onClick={() => setIsSidebarOpen(false)}
                     >
@@ -382,7 +397,7 @@ export default function VersionView({ artistSlug, versionSlug, onChordClick }) {
                 const isCurrent = songItem.slug === songBaseSlug;
                 return (
                   <li key={songItem.slug}>
-                    <a 
+                    <a
                       href={`/${artistSlug}/${songItem.slug}`}
                       className={`sidebar-item-link ${isCurrent ? 'active' : ''}`}
                       onClick={() => setIsSidebarOpen(false)}
@@ -418,7 +433,7 @@ export default function VersionView({ artistSlug, versionSlug, onChordClick }) {
 
                   return (
                     <li key={hist.id}>
-                      <a 
+                      <a
                         href={`/${hist.artistSlug}/${hist.versionSlug}`}
                         className={`sidebar-item-link ${isActive ? 'active' : ''}`}
                         onClick={() => setIsSidebarOpen(false)}
@@ -453,44 +468,100 @@ export default function VersionView({ artistSlug, versionSlug, onChordClick }) {
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <h2 className="view-title" id="version-view-title">{song.title}</h2>
-                {localStorage.getItem('token') && (
-                  <button
-                    className={`favorite-heart-btn ${isFavorite ? 'is-fav' : ''}`}
-                    onClick={toggleFavorite}
-                    title={isFavorite ? 'Quitar de favoritos' : 'Marcar como favorito'}
-                  >
-                    <svg viewBox="0 0 24 24">
-                      <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-                    </svg>
-                  </button>
-                )}
               </div>
               <h3 className="view-subtitle" id="version-view-artist">
                 por <a href={`/${artistSlug}`}>{song.artist}</a>
               </h3>
-              <div className="version-badges">
-                <span id="version-type-tag" className="tag type-tag">
-                  {song.type.toUpperCase()}
-                </span>
-                <span id="version-contributor-tag" className="tag contributor-tag">
-                  Colaborador: {song.contributor}
-                </span>
-              </div>
+
+              {/* Metadatos adicionales */}
+              {(song.composers || song.album) && (
+                <div className="version-meta-details">
+                  {song.composers && (
+                    <div className="meta-detail-item composers">
+                      <span className="meta-icon">✍️</span>
+                      <span className="meta-value">{song.composers}</span>
+                    </div>
+                  )}
+                  {song.album && (
+                    <div className="meta-detail-item album">
+                      <span className="meta-icon">💿</span>
+                      <span className="meta-value">
+                        {song.album} {song.year ? `[${song.year}]` : ''}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
-            <div className="external-links">
-              {song.source_url && (
-                <a id="version-link-original" href={song.source_url} target="_blank" rel="noopener noreferrer">
-                  Original ↗
-                </a>
+            <div className="version-header-right">
+              {song.song_code && (
+                <div className="song-code-box">
+                  <pre id="tCode">{song.song_code}</pre>
+                </div>
               )}
-              {song.archive_url && (
-                <a id="version-link-wayback" href={song.archive_url} target="_blank" rel="noopener noreferrer">
-                  Wayback ↗
-                </a>
-              )}
+              <div className="contributor-info-box">
+                <span>Enviado por </span>
+                {song.contributor_id ? (
+                  <a href="javascript:void(0)" className="contributor-link" title={`ID: ${song.contributor_id}`}>
+                    {song.contributor}
+                  </a>
+                ) : (
+                  <strong>{song.contributor}</strong>
+                )}
+              </div>
+              <div className="external-links">
+                {song.source_url && (
+                  <a id="version-link-original" href={song.source_url} target="_blank" rel="noopener noreferrer">
+                    Original ↗
+                  </a>
+                )}
+                {song.archive_url && (
+                  <a id="version-link-wayback" href={song.archive_url} target="_blank" rel="noopener noreferrer">
+                    Wayback ↗
+                  </a>
+                )}
+              </div>
             </div>
           </header>
+
+          {/* Divisor con controles integrados (Expandir, Imprimir, Texto Plano y Favoritos) */}
+          <div className="controls-divider-container">
+            <div className="controls-divider-line"></div>
+            <div className="controls-divider-buttons">
+              <button
+                className={`control-circle-btn ${isExpanded ? 'active' : ''}`}
+                onClick={() => setIsExpanded(!isExpanded)}
+                title={isExpanded ? "Contraer área de tablatura" : "Expandir área de tablatura"}
+              >
+                {isExpanded ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+              </button>
+              <button
+                className="control-circle-btn"
+                onClick={() => window.print()}
+                title="Vista de impresión"
+              >
+                <Printer size={18} />
+              </button>
+              <button
+                className="control-circle-btn"
+                onClick={() => {
+                  const txtSlug = versionSlug.replace(/\.shtml$/, '') + '.txt';
+                  window.open(`/TXT/${artistSlug}/${txtSlug}`, '_blank');
+                }}
+                title="Ver contenido en texto plano (.txt)"
+              >
+                <FileText size={18} />
+              </button>
+              <button
+                className={`control-circle-btn favorite-heart-btn ${isFavorite ? 'is-fav' : ''}`}
+                onClick={toggleFavorite}
+                title={isFavorite ? "Quitar de favoritos" : "Marcar como favorito"}
+              >
+                <Heart size={18} fill={isFavorite ? "var(--chord-color, #e11d48)" : "none"} />
+              </button>
+            </div>
+          </div>
 
           {/* Barra de herramientas superior */}
           <div className="toolbar">

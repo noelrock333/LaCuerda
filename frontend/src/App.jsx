@@ -163,6 +163,7 @@ function App() {
             artistSlug={artistSlug}
             versionSlug={songOrVersionSlug}
             onChordClick={(chord) => setActiveChord(chord)}
+            onAuthRequired={() => setIsAuthModalOpen(true)}
           />
         );
       } else {
