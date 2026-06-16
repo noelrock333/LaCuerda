@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
+import { Routes, Route, Navigate, useParams, useLocation } from 'react-router-dom';
 import Header from './components/layout/Header.jsx';
 import HomeView from './views/HomeView.jsx';
 import AlphabetView from './views/AlphabetView.jsx';
@@ -11,106 +12,40 @@ import ChordModal from './components/ChordModal.jsx';
 import AuthModal from './components/AuthModal.jsx';
 import { useMeQuery } from './hooks/useAuth.js';
 
+/**
+ * Componente intermediario que decide si renderizar VersionView o SongView
+ * a partir del segundo segmento de la URL. Necesario porque React Router
+ * no hace matching nativo de segmentos con puntos (ej. .shtml).
+ */
+function ArtistOrSongRoute() {
+  const { artistSlug, '*': splat } = useParams();
+
+  // Sin segmento adicional → página del artista
+  if (!splat) {
+    return <ArtistView artistSlug={artistSlug} />;
+  }
+
+  // Con extensión .shtml o sufijo numérico (-N) → versión de la canción
+  const isVersion = splat.endsWith('.shtml') || /^.+-\d+$/.test(splat);
+  if (isVersion) {
+    return <VersionView artistSlug={artistSlug} versionSlug={splat} />;
+  }
+
+  // Sin extensión ni sufijo numérico → página de la canción (lista de versiones)
+  return <SongView artistSlug={artistSlug} songSlug={splat} />;
+}
+
 function App() {
-  const [currentPath, setCurrentPath] = useState(window.location.pathname);
-  const [searchParams, setSearchParams] = useState(window.location.search);
+  const location = useLocation();
 
   // Valida e inicializa la sesión activa del usuario al arrancar (si existe token)
   useMeQuery();
 
-  // Escucha cambios de historial (botones de atrás/adelante)
-  useEffect(() => {
-    const handlePopState = () => {
-      setCurrentPath(window.location.pathname);
-      setSearchParams(window.location.search);
-    };
+  // Derivar cleanPath desde React Router para el Header
+  const cleanPath = location.pathname.replace(/^\/+/, '').replace(/\/+$/, '');
 
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
-  }, []);
-
-  // Intercepta clicks globales en etiquetas <a> para enrutamiento SPA silencioso
-  useEffect(() => {
-    const handleGlobalClick = (e) => {
-      const link = e.target.closest('a');
-      if (link) {
-        const href = link.getAttribute('href');
-        const target = link.getAttribute('target');
-
-        // Solo intercepta links internos relativos
-        if (href && href.startsWith('/') && !href.startsWith('//') && target !== '_blank') {
-          e.preventDefault();
-          window.history.pushState(null, '', href);
-          setCurrentPath(window.location.pathname);
-          setSearchParams(window.location.search);
-          window.scrollTo(0, 0);
-        }
-      }
-    };
-
-    document.addEventListener('click', handleGlobalClick);
-    return () => document.removeEventListener('click', handleGlobalClick);
-  }, []);
-
-  // Callback para navegación forzada (ej. logo, buscador)
-  const handleNavigate = (path, search = '') => {
-    setCurrentPath(path);
-    setSearchParams(search);
-  };
-
-  // Lógica de enrutamiento básica
-  const cleanPath = currentPath.replace(/^\/+/, '').replace(/\/+$/, '');
-  const queryParams = new URLSearchParams(searchParams);
-
-  let viewComponent = null;
-  let showHeaderSearch = true;
-
-  if (cleanPath === '') {
-    // Portada / Home
-    showHeaderSearch = false;
-    const q = queryParams.get('q') || '';
-    viewComponent = <HomeView initialQuery={q} />;
-  } else if (cleanPath === 'catalog') {
-    // Catálogo agrupado por artista
-    viewComponent = <CatalogView />;
-  } else if (cleanPath === 'favorites') {
-    // Favoritos del usuario
-    viewComponent = <FavoritesView />;
-  } else {
-    const parts = cleanPath.split('/');
-    if (parts.length === 2 && parts[0] === 'letter') {
-      const letter = parts[1];
-      const page = parseInt(queryParams.get('page') || '1', 10);
-      viewComponent = <AlphabetView letter={letter} page={page} />;
-    } else if (parts.length === 1) {
-      const artistSlug = parts[0];
-      viewComponent = <ArtistView artistSlug={artistSlug} />;
-    } else if (parts.length === 2) {
-      const artistSlug = parts[0];
-      const songOrVersionSlug = parts[1];
-      
-      const isVersion = songOrVersionSlug.endsWith('.shtml') || songOrVersionSlug.match(/-\d+$/);
-      if (isVersion) {
-        viewComponent = (
-          <VersionView
-            artistSlug={artistSlug}
-            versionSlug={songOrVersionSlug}
-          />
-        );
-      } else {
-        viewComponent = <SongView artistSlug={artistSlug} songSlug={songOrVersionSlug} />;
-      }
-    } else {
-      // 404 / Ruta desconocida -> Redirigir a portada
-      setTimeout(() => {
-        window.history.pushState(null, '', '/');
-        handleNavigate('/', '');
-      }, 0);
-    }
-  }
-
-  // Sincronizar el buscador del header con el parámetro ?q= del URL
-  const initialSearchQuery = cleanPath === '' ? queryParams.get('q') || '' : '';
+  // Home no muestra el buscador del header
+  const showHeaderSearch = cleanPath !== '';
 
   return (
     <>
@@ -118,13 +53,34 @@ function App() {
       <Header
         cleanPath={cleanPath}
         showHeaderSearch={showHeaderSearch}
-        initialQuery={initialSearchQuery}
-        onNavigate={handleNavigate}
       />
 
       {/* Contenedor Principal de Vistas */}
       <main className="main-content">
-        {viewComponent}
+        <Routes>
+          {/* Portada */}
+          <Route path="/" element={<HomeView />} />
+
+          {/* Catálogo de artistas */}
+          <Route path="/catalog" element={<CatalogView />} />
+
+          {/* Favoritos del usuario */}
+          <Route path="/favorites" element={<FavoritesView />} />
+
+          {/* Índice alfabético: /letter/A, /letter/B, etc. */}
+          <Route path="/letter/:letter" element={<AlphabetView />} />
+
+          {/*
+           * Ruta catch-all para artista + canción/versión.
+           * El wildcard (*) captura todo lo que venga después de /:artistSlug/
+           * incluyendo segmentos con puntos (.shtml) que React Router no matchea
+           * de forma nativa en rutas con path fijo.
+           */}
+          <Route path="/:artistSlug/*" element={<ArtistOrSongRoute />} />
+
+          {/* Cualquier ruta desconocida → portada */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
       </main>
 
       {/* Modal global de visualización de acorde */}

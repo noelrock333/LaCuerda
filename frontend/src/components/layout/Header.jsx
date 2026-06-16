@@ -1,39 +1,44 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import useAuthStore from '../../store/useAuthStore.js';
 import useUIStore from '../../store/useUIStore.js';
 import { useLogoutMutation } from '../../hooks/useAuth.js';
 
-export default function Header({ cleanPath, showHeaderSearch, initialQuery = '', onNavigate }) {
+export default function Header({ cleanPath, showHeaderSearch }) {
   const user = useAuthStore((state) => state.user);
   const setAuthModalOpen = useUIStore((state) => state.setAuthModalOpen);
   const logoutMutation = useLogoutMutation();
-  
-  const [headerQuery, setHeaderQuery] = useState(initialQuery);
+  const navigate = useNavigate();
+  const location = useLocation();
 
-  // Sincroniza la consulta con la URL cuando cambia el parámetro
+  // Derivar la query de búsqueda inicial desde la URL al montar o cambiar de ruta
+  const searchParams = new URLSearchParams(location.search);
+  const [headerQuery, setHeaderQuery] = useState(searchParams.get('q') || '');
+
+  // Sincronizar el input cuando la ruta cambia (ej. al navegar atrás/adelante)
   useEffect(() => {
-    setHeaderQuery(initialQuery);
-  }, [initialQuery]);
+    const params = new URLSearchParams(location.search);
+    setHeaderQuery(params.get('q') || '');
+  }, [location.search]);
 
   const handleHeaderSearchInput = (e) => {
     const value = e.target.value;
     setHeaderQuery(value);
-    
-    // Notifica el cambio de búsqueda y redirige a la raíz de la SPA
+
+    // Navegar silenciosamente a la portada con el query param actualizado
     const searchStr = value.trim() ? `?q=${encodeURIComponent(value.trim())}` : '';
-    window.history.pushState(null, '', `/${searchStr}`);
-    onNavigate('/', searchStr);
+    navigate(`/${searchStr}`, { replace: true });
   };
 
   const handleLogoClick = () => {
     setHeaderQuery('');
-    window.history.pushState(null, '', '/');
-    onNavigate('/', '');
+    navigate('/');
   };
 
   const handleLogout = () => {
     logoutMutation.mutate();
-    handleLogoClick();
+    setHeaderQuery('');
+    navigate('/');
   };
 
   return (

@@ -1,7 +1,12 @@
 import React from 'react';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { useArtistsByLetterQuery } from '../hooks/useSongs.js';
 
-export default function AlphabetView({ letter, page }) {
+export default function AlphabetView() {
+  const { letter } = useParams();
+  const [searchParams] = useSearchParams();
+  const page = parseInt(searchParams.get('page') || '1', 10);
+
   const { data = { artists: [], page: 1, total: 0, totalPages: 0 }, isLoading, error } = useArtistsByLetterQuery(letter, page);
 
   if (isLoading) {

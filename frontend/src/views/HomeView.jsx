@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useDebounce } from '../hooks/useDebounce.js';
 import { useSearchQuery } from '../hooks/useSongs.js';
 
@@ -6,29 +7,33 @@ const ALPHABET_LETTERS = [
   'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'Ñ', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '0-9'
 ];
 
-export default function HomeView({ initialQuery = '' }) {
-  const [query, setQuery] = useState(initialQuery);
+export default function HomeView() {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+
+  // Estado de la búsqueda inicializado desde el query param ?q=
+  const [query, setQuery] = useState(searchParams.get('q') || '');
   const debouncedQuery = useDebounce(query, 250);
-  
+
   // Consumo de Query con React Query y Debounce
   const { data: results = { artists: [], songs: [] }, isLoading } = useSearchQuery(debouncedQuery);
 
-  // Sincronizar estado cuando el query inicial cambia
+  // Sincronizar el estado interno si el param ?q= cambia externamente
+  // (ej. usuario navega atrás/adelante o el header sincroniza)
   useEffect(() => {
-    setQuery(initialQuery);
-  }, [initialQuery]);
+    setQuery(searchParams.get('q') || '');
+  }, [searchParams]);
 
   const handleSearchChange = (e) => {
     const val = e.target.value;
     setQuery(val);
 
+    // Actualizar el URL de forma silenciosa para soportar historial
     if (val.trim().length < 2) {
-      window.history.replaceState(null, '', '/');
-      return;
+      navigate('/', { replace: true });
+    } else {
+      navigate(`/?q=${encodeURIComponent(val.trim())}`, { replace: true });
     }
-
-    // Actualizar el URL de forma silenciosa para soportar HMR e historial
-    window.history.replaceState(null, '', `/?q=${encodeURIComponent(val.trim())}`);
   };
 
   const getArtistSlug = (artistName) => {
