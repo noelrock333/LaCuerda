@@ -48,10 +48,11 @@ const start = async () => {
       console.error('[SEED ERROR] Error al sembrar usuarios por defecto:', seedError.message);
     }
 
-    await fastify.listen({ port: 3000, host: '0.0.0.0' });
+    const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
+    await fastify.listen({ port: PORT, host: '0.0.0.0' });
     console.log('\n==================================================');
     console.log('  VISUALIZADOR INICIADO CORRECTAMENTE             ');
-    console.log('  Abre tu navegador en: http://localhost:3000    ');
+    console.log(`  Abre tu navegador en: http://localhost:${PORT}    `);
     console.log('==================================================\n');
   } catch (err) {
     fastify.log.error(err);
