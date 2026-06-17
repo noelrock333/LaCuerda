@@ -32,7 +32,7 @@ COPY src/ ./src/
 COPY --from=frontend-builder /app/public ./public/
 
 # Exponer el puerto del servidor
-EXPOSE 3000
+EXPOSE 3004
 
 # Variables de entorno con valores por defecto (sobreescribibles via docker-compose o -e)
 ENV NODE_ENV=production \
@@ -41,7 +41,7 @@ ENV NODE_ENV=production \
     DB_USER=postgres \
     DB_PASSWORD=postgres \
     DB_NAME=la_cuerda_offline_db \
-    PORT=3000
+    PORT=3004
 
 # Comando de inicio
 CMD ["node", "src/server.js"]
