@@ -95,28 +95,52 @@ Inicia, reanuda o reintenta descargas masivas de todo el catálogo de forma secu
 
 Los siguientes comandos administran la aplicación interactiva para ver y buscar las canciones descargadas.
 
-### 1. Modo de Desarrollo (Frontend + Backend)
-Levanta los servidores de desarrollo tanto para la interfaz visual como para la API de datos al mismo tiempo.
+### 1. Modo de Desarrollo (Frontend + Backend con HMR)
+Levanta ambos servidores en paralelo con hot-reload en frontend y backend.
 ```bash
 npm run dev
 ```
-* **Descripción**: 
-  - Lanza un servidor de desarrollo de Vite para el **Frontend** (con recarga en caliente / HMR) en el puerto configurado por Vite.
-  - Ejecuta el servidor backend de Fastify en `src/server.js` para proveer los endpoints de API al frontend.
+* **Descripción**:
+  - Lanza el servidor de Vite para el **Frontend** en `http://localhost:5173` (con HMR / recarga en caliente).
+  - Lanza el servidor Fastify en `http://localhost:3000` con `node --watch` (reinicio automático al cambiar archivos del backend).
+  - **Solo necesitas abrir `http://localhost:3000`** — el backend detecta que está en modo desarrollo (`NODE_ENV=development`) y actúa como proxy transparente: reenvía todas las peticiones de HTML/JS/CSS hacia Vite en `:5173`, por lo que el HMR funciona de forma invisible.
+
+* **Arquitectura de archivos en desarrollo**:
+  ```
+  http://localhost:3000  (Fastify — punto de entrada único)
+      │
+      ├── /api/*    →  Manejado por el backend (base de datos, auth, etc.)
+      ├── /TXT/*    →  Archivos de tablaturas servidos por el backend
+      └── /*        →  Proxy hacia http://localhost:5173 (Vite HMR)
+  ```
+
+* **Hot-reload**:
+  - **Frontend**: Vite detecta cambios en `frontend/src/` y aplica HMR sin recargar la página.
+  - **Backend**: `node --watch` detecta cambios en `src/` y reinicia el servidor automáticamente.
 
 ### 2. Construcción de Producción del Frontend
 Compila la interfaz de usuario en archivos listos para producción.
 ```bash
 npm run build
 ```
-* **Descripción**: Ejecuta el bundle y compilación optimizada del frontend de React/Vite, dejando los archivos listos en la carpeta estática para ser servidos por el servidor backend.
+* **Descripción**: Ejecuta el bundle y compilación optimizada del frontend de React/Vite, dejando los archivos estáticos en la carpeta `/public` de la raíz del proyecto.
 
 ### 3. Ejecución en Producción
-Compila el frontend y levanta la aplicación en modo producción listo para usar.
+Compila el frontend y levanta la aplicación en modo producción lista para usar.
 ```bash
 npm run prod
 ```
-* **Descripción**: Ejecuta primero el paso de compilación (`npm run build`) y posteriormente inicia el servidor Fastify (`node src/server.js`) sirviendo tanto la API como los archivos estáticos de forma integrada.
+* **Descripción**: Ejecuta primero la compilación (`npm run build`) y posteriormente inicia el servidor Fastify (`node src/server.js`) **sin** `NODE_ENV=development`, por lo que sirve directamente los archivos estáticos de `/public` sin proxy hacia Vite. Todo se sirve desde `http://localhost:3000`.
+
+* **Arquitectura de archivos en producción**:
+  ```
+  http://localhost:3000  (Fastify — servidor único)
+      │
+      ├── /api/*    →  Manejado por el backend
+      ├── /TXT/*    →  Archivos de tablaturas
+      └── /*        →  Archivos estáticos de /public (build de Vite)
+                        index.html para rutas del cliente (SPA)
+  ```
 
 ## Para crear un backup de la base de datos
 pg_dump -h localhost -p 5432 -U postgres -d la_cuerda_offline_db -Fc -v > backup_lacuerda.dump

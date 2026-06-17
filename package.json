@@ -11,7 +11,7 @@
     "crawl:resume": "node src/crawl_alpha.js --resume",
     "crawl:retry": "node src/crawl_alpha.js --retry-failed",
     "build": "npm run build --prefix frontend",
-    "dev": "npm run dev --prefix frontend & node src/server.js",
+    "dev": "npm run dev --prefix frontend & NODE_ENV=development node --watch src/server.js",
     "prod": "npm run build && node src/server.js"
   },
   "dependencies": {
