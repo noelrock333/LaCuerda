@@ -1,7 +1,7 @@
 services:
   # ─── Base de datos PostgreSQL ────────────────────────────────────────────────
   postgres:
-    image: postgres:16-alpine
+    image: postgres:17-alpine
     container_name: lacuerda_db
     restart: unless-stopped
     environment:
