@@ -10,3 +10,6 @@ public/assets/
 public/index.html
 public/favicon.svg
 public/icons.svg
+
+# Variables de entorno (credenciales reales)
+.env

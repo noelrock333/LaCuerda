@@ -1,0 +1,19 @@
+# Ignorar .env con credenciales reales
+.env
+
+# Docker build cache y contexto innecesario
+node_modules
+frontend/node_modules
+frontend/dist
+public/assets
+public/index.html
+public/favicon.svg
+public/icons.svg
+
+# Archivos de desarrollo y datos locales
+chords.db
+crawl_state.json
+urls.txt
+personal_list.txt
+.git
+*.log

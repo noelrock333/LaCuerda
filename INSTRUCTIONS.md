@@ -147,3 +147,90 @@ pg_dump -h localhost -p 5432 -U postgres -d la_cuerda_offline_db -Fc -v > backup
 
 ## Para restaurar la base de datos desde un backup
 pg_restore -h localhost -p 5432 -U postgres -d la_cuerda_offline_db -v backup_lacuerda.dump
+
+---
+
+## 🐳 Levantar el Proyecto con Docker
+
+Este proyecto incluye soporte completo para Docker y Docker Compose para facilitar su despliegue y administración de dependencias (Node, PostgreSQL).
+
+### 1. Variables de Entorno
+Crea un archivo `.env` en la raíz del proyecto para definir los valores de configuración. Puedes basarte en el archivo `.env.example`:
+
+```bash
+cp .env.example .env
+```
+
+| Variable | Descripción | Valor por Defecto |
+|---|---|---|
+| `DB_HOST` | Host de la base de datos. En Docker Compose se usa `postgres` | `postgres` |
+| `DB_PORT` | Puerto de conexión a PostgreSQL | `5432` |
+| `DB_USER` | Usuario de PostgreSQL | `postgres` |
+| `DB_PASSWORD` | Contraseña de PostgreSQL | `postgres` |
+| `DB_NAME` | Nombre de la base de datos | `la_cuerda_offline_db` |
+| `APP_PORT` | Puerto en tu máquina local para acceder a la aplicación web | `3000` |
+
+### 2. Comandos para Levantar la Aplicación
+Ejecuta los siguientes comandos desde el directorio raíz del proyecto:
+
+* **Levantar la aplicación por primera vez o reconstruyendo cambios**:
+  ```bash
+  docker compose up --build -d
+  ```
+* **Levantar la aplicación en segundo plano**:
+  ```bash
+  docker compose up -d
+  ```
+* **Ver logs del sistema**:
+  ```bash
+  docker compose logs -f
+  ```
+* **Detener los contenedores sin borrar los datos**:
+  ```bash
+  docker compose down
+  ```
+* **Detener los contenedores borrando volúmenes (¡Reinicia la DB!)**:
+  ```bash
+  docker compose down -v
+  ```
+
+Una vez levantado, puedes acceder a la interfaz web en `http://localhost:3000` (o el puerto configurado en `APP_PORT`).
+
+---
+
+## 🗄️ Importar y Exportar la Base de Datos (PostgreSQL Dump)
+
+### A) En una máquina normal (Local)
+Ejecuta estos comandos en la terminal de tu máquina si tienes instalado `postgresql-client` localmente:
+
+* **Exportar (Crear Backup)**:
+  ```bash
+  pg_dump -h localhost -p 5432 -U postgres -d la_cuerda_offline_db -Fc -v > backup_lacuerda.dump
+  ```
+* **Importar (Restaurar Backup)**:
+  ```bash
+  pg_restore -h localhost -p 5432 -U postgres -d la_cuerda_offline_db -v backup_lacuerda.dump
+  ```
+
+### B) Usando contenedores de Docker
+Si la base de datos corre dentro de Docker pero no tienes PostgreSQL instalado en tu host local, puedes ejecutar los comandos directamente interactuando con el contenedor de Docker:
+
+* **Exportar (Crear Backup)**:
+  ```bash
+  docker exec -t lacuerda_db pg_dump -U postgres -d la_cuerda_offline_db -Fc > backup_lacuerda.dump
+  ```
+  *(Este comando genera el archivo `backup_lacuerda.dump` directamente en el directorio actual de tu máquina host).*
+
+* **Importar (Restaurar Backup)**:
+  1. Copia el archivo dump dentro del contenedor temporalmente:
+     ```bash
+     docker cp backup_lacuerda.dump lacuerda_db:/tmp/backup_lacuerda.dump
+     ```
+  2. Ejecuta la restauración dentro del contenedor:
+     ```bash
+     docker exec -it lacuerda_db pg_restore -U postgres -d la_cuerda_offline_db -v /tmp/backup_lacuerda.dump
+     ```
+  3. (Opcional) Borra el archivo temporal del contenedor:
+     ```bash
+     docker exec -it lacuerda_db rm /tmp/backup_lacuerda.dump
+     ```
