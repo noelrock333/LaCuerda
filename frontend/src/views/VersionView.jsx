@@ -6,7 +6,25 @@ import useUIStore from '../store/useUIStore.js';
 import { useVersionDetailQuery, useSongDetailQuery, useArtistDetailQuery, useUpdateVersionMutation } from '../hooks/useSongs.js';
 import { useFavoriteStatusQuery, useToggleFavoriteMutation, useAwesomeMutation } from '../hooks/useFavorites.js';
 
+function getScrollContainer() {
+  return document.getElementById('main-scroll');
+}
+
 const HISTORY_KEY = 'lacuerda_view_history';
+const MOBILE_BREAKPOINT = '(max-width: 900px)';
+
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(() => window.matchMedia(MOBILE_BREAKPOINT).matches);
+
+  useEffect(() => {
+    const mq = window.matchMedia(MOBILE_BREAKPOINT);
+    const handler = (e) => setIsMobile(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+
+  return isMobile;
+}
 
 function getHistory() {
   try {
@@ -70,6 +88,7 @@ function highlightChords(content, chordsStr) {
 }
 
 export default function VersionView({ artistSlug, versionSlug }) {
+  const isMobile = useIsMobile();
   const currentUser = useAuthStore((state) => state.user);
   const token = useAuthStore((state) => state.token);
   const setActiveChord = useUIStore((state) => state.setActiveChord);
@@ -99,8 +118,9 @@ export default function VersionView({ artistSlug, versionSlug }) {
   const awesomeMutation = useAwesomeMutation();
 
   // 3. Estados Locales
-  const [fontSize, setFontSize] = useState(16);
+  const [fontSize, setFontSize] = useState(() => (window.innerWidth <= 900 ? 12 : 16));
   const [isExpanded, setIsExpanded] = useState(false);
+  const [chordsExpanded, setChordsExpanded] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   
   // Estados para modo edición
@@ -133,6 +153,16 @@ export default function VersionView({ artistSlug, versionSlug }) {
     localStorage.setItem('lacuerda_floating_expanded', isFloatingExpanded);
   }, [isFloatingExpanded]);
 
+  // Modo pantalla completa en mobile: oculta header y UI secundaria
+  useEffect(() => {
+    if (isExpanded && isMobile) {
+      document.body.classList.add('version-focus-mode');
+    } else {
+      document.body.classList.remove('version-focus-mode');
+    }
+    return () => document.body.classList.remove('version-focus-mode');
+  }, [isExpanded, isMobile]);
+
   // Sincronizar título del documento e Historial
   useEffect(() => {
     if (song) {
@@ -162,38 +192,60 @@ export default function VersionView({ artistSlug, versionSlug }) {
   }, [song, artistSlug, versionSlug]);
 
   const scrollToTop = () => {
-    const scrollContainer = document.querySelector('.main-content');
+    const scrollContainer = getScrollContainer();
     if (scrollContainer) {
       scrollContainer.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
-  // Autoscroll animation
+  // Autoscroll: incremento directo sin listener de scroll (iOS/Chrome mobile
+  // disparan scroll async y reseteaban la posición acumulada).
   useEffect(() => {
     if (!isScrolling) return;
 
-    let active = true;
-    const scrollContainer = document.querySelector('.main-content');
+    const scrollContainer = getScrollContainer();
     if (!scrollContainer) return;
+
+    let active = true;
+    let touchStartY = null;
+    const ignoreUntil = performance.now() + 350;
+
+    const onTouchStart = (e) => {
+      touchStartY = e.touches[0]?.clientY ?? null;
+    };
+
+    const onTouchMove = (e) => {
+      if (performance.now() < ignoreUntil || touchStartY === null) return;
+      const y = e.touches[0]?.clientY;
+      if (y != null && Math.abs(y - touchStartY) > 12) {
+        setIsScrolling(false);
+      }
+    };
+
+    const onWheel = () => {
+      if (performance.now() < ignoreUntil) return;
+      setIsScrolling(false);
+    };
+
+    scrollContainer.addEventListener('touchstart', onTouchStart, { passive: true });
+    scrollContainer.addEventListener('touchmove', onTouchMove, { passive: true });
+    scrollContainer.addEventListener('wheel', onWheel, { passive: true });
 
     let scrollAccumulator = scrollContainer.scrollTop;
 
     const scrollStep = () => {
       if (!active) return;
 
-      if (Math.abs(scrollContainer.scrollTop - Math.round(scrollAccumulator)) > 1) {
-        scrollAccumulator = scrollContainer.scrollTop;
+      const maxScroll = scrollContainer.scrollHeight - scrollContainer.clientHeight;
+      if (maxScroll <= 0) {
+        setIsScrolling(false);
+        return;
       }
 
-      const pxPerFrame = scrollSpeed * 0.08;
-      scrollAccumulator += pxPerFrame;
+      scrollAccumulator = Math.min(scrollAccumulator + scrollSpeed * 0.08, maxScroll);
       scrollContainer.scrollTop = Math.round(scrollAccumulator);
 
-      const reachedBottom =
-        scrollContainer.scrollHeight - scrollContainer.clientHeight <=
-        scrollContainer.scrollTop + 1;
-
-      if (reachedBottom) {
+      if (scrollAccumulator >= maxScroll - 0.5) {
         setIsScrolling(false);
         return;
       }
@@ -205,6 +257,9 @@ export default function VersionView({ artistSlug, versionSlug }) {
 
     return () => {
       active = false;
+      scrollContainer.removeEventListener('touchstart', onTouchStart);
+      scrollContainer.removeEventListener('touchmove', onTouchMove);
+      scrollContainer.removeEventListener('wheel', onWheel);
       if (scrollIntervalRef.current) {
         cancelAnimationFrame(scrollIntervalRef.current);
       }
@@ -665,6 +720,18 @@ export default function VersionView({ artistSlug, versionSlug }) {
             </div>
           ) : (
             <>
+              {/* Botón flotante para salir de pantalla completa (solo mobile) */}
+              {isExpanded && isMobile && (
+                <button
+                  className="version-focus-exit-btn"
+                  onClick={() => setIsExpanded(false)}
+                  title="Contraer pantalla"
+                  aria-label="Contraer pantalla"
+                >
+                  <Minimize2 size={20} />
+                </button>
+              )}
+
               {/* Barra de herramientas flotante del lado derecho */}
               <div className="floating-toolbar-container">
                 {!isFloatingExpanded ? (
@@ -800,26 +867,65 @@ export default function VersionView({ artistSlug, versionSlug }) {
                 )}
               </div>
 
-              {/* Diagramas de acordes recomendados */}
+              {/* Acordes recomendados: colapsables en mobile, diagramas en desktop */}
               {chordList.length > 0 && (
-                <div id="version-chords-box" className="version-chords-diagrams-container">
-                  <h4>Acordes recomendados en esta versión:</h4>
-                  <div id="version-chords-list" className="chords-diagrams-list">
-                    {chordList.map((chord, index) => (
-                      <div
-                        key={`${chord}-${index}`}
-                        className="chord-diagram-card"
-                        onClick={() => setActiveChord(chord)}
-                        title={`Ver variaciones de ${chord}`}
-                      >
-                        <span className="chord-diagram-name">{chord}</span>
-                        <div className="chord-diagram-svg-wrap">
-                          <GuitarChord chordName={chord} />
-                        </div>
+                <>
+                  <div className="version-chords-mobile">
+                    <button
+                      type="button"
+                      className="version-chords-mobile-toggle"
+                      onClick={() => setChordsExpanded((v) => !v)}
+                      aria-expanded={chordsExpanded}
+                    >
+                      Acordes recomendados ({chordList.length})
+                      <ChevronRight
+                        size={16}
+                        className={`version-chords-chevron ${chordsExpanded ? 'open' : ''}`}
+                      />
+                    </button>
+                    {chordsExpanded && (
+                      <div className="chords-list version-chords-mobile-list">
+                        {chordList.map((chord, index) => (
+                          <span
+                            key={`${chord}-${index}`}
+                            className="chord-badge"
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => setActiveChord(chord)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                setActiveChord(chord);
+                              }
+                            }}
+                            title={`Ver variaciones de ${chord}`}
+                          >
+                            {chord}
+                          </span>
+                        ))}
                       </div>
-                    ))}
+                    )}
                   </div>
-                </div>
+
+                  <div id="version-chords-box" className="version-chords-diagrams-container">
+                    <h4>Acordes recomendados en esta versión:</h4>
+                    <div id="version-chords-list" className="chords-diagrams-list">
+                      {chordList.map((chord, index) => (
+                        <div
+                          key={`${chord}-${index}`}
+                          className="chord-diagram-card"
+                          onClick={() => setActiveChord(chord)}
+                          title={`Ver variaciones de ${chord}`}
+                        >
+                          <span className="chord-diagram-name">{chord}</span>
+                          <div className="chord-diagram-svg-wrap">
+                            <GuitarChord chordName={chord} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </>
               )}
 
               {/* Panel de la tablatura preformateada */}

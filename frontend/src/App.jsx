@@ -56,7 +56,7 @@ function App() {
       />
 
       {/* Contenedor Principal de Vistas */}
-      <main className="main-content">
+      <main id="main-scroll" className="main-content">
         <Routes>
           {/* Portada */}
           <Route path="/" element={<HomeView />} />
