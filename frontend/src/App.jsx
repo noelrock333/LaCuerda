@@ -10,6 +10,7 @@ import CatalogView from './views/CatalogView.jsx';
 import FavoritesView from './views/FavoritesView.jsx';
 import ChordModal from './components/ChordModal.jsx';
 import AuthModal from './components/AuthModal.jsx';
+import ImportSongModal from './components/ImportSongModal.jsx';
 import { useMeQuery } from './hooks/useAuth.js';
 
 /**
@@ -88,6 +89,9 @@ function App() {
 
       {/* Modal global de Autenticación */}
       <AuthModal />
+
+      {/* Modal global de importación (admin/moderador) */}
+      <ImportSongModal />
     </>
   );
 }

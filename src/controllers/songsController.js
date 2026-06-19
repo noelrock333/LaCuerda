@@ -1,4 +1,5 @@
 import { SongsService } from '../services/songsService.js';
+import { ImportService } from '../services/importService.js';
 
 export class SongsController {
   static async search(request, reply) {
@@ -72,6 +73,32 @@ export class SongsController {
       request.log.error(error);
       const status = error.status || 500;
       reply.status(status).send({ error: error.message || 'Error al actualizar la versión' });
+    }
+  }
+
+  static async importSong(request, reply) {
+    const { url, downloadAllVersions } = request.body || {};
+
+    try {
+      const result = await ImportService.importSongFromUrl({ url, downloadAllVersions });
+      return result;
+    } catch (error) {
+      request.log.error(error);
+      const status = error.status || 500;
+      reply.status(status).send({ error: error.message || 'Error al importar la canción' });
+    }
+  }
+
+  static async autoImport(request, reply) {
+    const { artistSlug, slug, type } = request.body || {};
+
+    try {
+      const result = await ImportService.autoImportFromPath({ artistSlug, slug, type });
+      return result;
+    } catch (error) {
+      request.log.error(error);
+      const status = error.status || 500;
+      reply.status(status).send({ error: error.message || 'Error al importar la canción' });
     }
   }
 

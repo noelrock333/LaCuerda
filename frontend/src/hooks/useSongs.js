@@ -7,15 +7,64 @@ import {
   getSongDetailApi,
   getVersionDetailApi,
   updateVersionApi,
-  getVersionTxtApi
+  getVersionTxtApi,
+  importSongApi,
+  autoImportSongApi
 } from '../api/songs.js';
+
+function isNotFoundError(error) {
+  const msg = error?.message?.toLowerCase() || '';
+  return msg.includes('no encontrad') || msg.includes('error http: 404');
+}
+
+async function tryAutoImport(artistSlug, slug, type) {
+  try {
+    return await autoImportSongApi(artistSlug, slug, type);
+  } catch (error) {
+    const msg = error?.message || '';
+    if (msg.toLowerCase().includes('no se encontr') || msg.toLowerCase().includes('lacuerda')) {
+      throw new Error(msg);
+    }
+    throw new Error('No se encontró esta canción en LaCuerda.net');
+  }
+}
+
+async function fetchSongDetailWithAutoImport(artistSlug, songSlug) {
+  try {
+    return await getSongDetailApi(artistSlug, songSlug);
+  } catch (error) {
+    if (!isNotFoundError(error)) {
+      throw error;
+    }
+    const autoResult = await tryAutoImport(artistSlug, songSlug, 'song');
+    if (autoResult.status === 'imported' || autoResult.status === 'exists') {
+      return await getSongDetailApi(artistSlug, songSlug);
+    }
+    throw new Error('No se encontró esta canción en LaCuerda.net');
+  }
+}
+
+async function fetchVersionDetailWithAutoImport(artistSlug, versionSlug) {
+  try {
+    return await getVersionDetailApi(artistSlug, versionSlug);
+  } catch (error) {
+    if (!isNotFoundError(error)) {
+      throw error;
+    }
+    const autoResult = await tryAutoImport(artistSlug, versionSlug, 'version');
+    if (autoResult.status === 'imported' || autoResult.status === 'exists') {
+      return await getVersionDetailApi(artistSlug, versionSlug);
+    }
+    throw new Error('No se encontró esta canción en LaCuerda.net');
+  }
+}
 
 export function useSearchQuery(query) {
   return useQuery({
     queryKey: ['songs', 'search', query],
     queryFn: () => searchSongsApi(query),
     enabled: query.trim().length >= 2,
-    staleTime: 1000 * 60 * 5 // 5 minutos
+    staleTime: 1000 * 60 * 5
   });
 }
 
@@ -23,7 +72,7 @@ export function useCatalogQuery() {
   return useQuery({
     queryKey: ['songs', 'catalog'],
     queryFn: getGroupedByArtistApi,
-    staleTime: 1000 * 60 * 10 // 10 minutos
+    staleTime: 1000 * 60 * 10
   });
 }
 
@@ -46,16 +95,18 @@ export function useArtistDetailQuery(artistSlug) {
 export function useSongDetailQuery(artistSlug, songSlug) {
   return useQuery({
     queryKey: ['songs', 'detail', artistSlug, songSlug],
-    queryFn: () => getSongDetailApi(artistSlug, songSlug),
-    staleTime: 1000 * 60 * 5
+    queryFn: () => fetchSongDetailWithAutoImport(artistSlug, songSlug),
+    staleTime: 1000 * 60 * 5,
+    retry: false
   });
 }
 
 export function useVersionDetailQuery(artistSlug, versionSlug) {
   return useQuery({
     queryKey: ['version', 'detail', artistSlug, versionSlug],
-    queryFn: () => getVersionDetailApi(artistSlug, versionSlug),
-    staleTime: 1000 * 60 * 5
+    queryFn: () => fetchVersionDetailWithAutoImport(artistSlug, versionSlug),
+    staleTime: 1000 * 60 * 5,
+    retry: false
   });
 }
 
@@ -69,14 +120,28 @@ export function useVersionTxtQuery(artistSlug, versionSlug) {
 
 export function useUpdateVersionMutation() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: ({ id, data }) => updateVersionApi(id, data),
-    onSuccess: (data, variables) => {
-      // Invalida la canción, la versión y el catálogo para actualizar la UI
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['songs', 'detail'] });
       queryClient.invalidateQueries({ queryKey: ['version', 'detail'] });
       queryClient.invalidateQueries({ queryKey: ['version', 'txt'] });
+      queryClient.invalidateQueries({ queryKey: ['artists', 'detail'] });
+    }
+  });
+}
+
+export function useImportSongMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ url, downloadAllVersions }) => importSongApi(url, downloadAllVersions),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['songs', 'catalog'] });
+      queryClient.invalidateQueries({ queryKey: ['songs', 'search'] });
+      queryClient.invalidateQueries({ queryKey: ['songs', 'detail'] });
+      queryClient.invalidateQueries({ queryKey: ['version', 'detail'] });
       queryClient.invalidateQueries({ queryKey: ['artists', 'detail'] });
     }
   });

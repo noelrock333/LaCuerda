@@ -7,9 +7,12 @@ import { useLogoutMutation } from '../../hooks/useAuth.js';
 export default function Header({ cleanPath, showHeaderSearch }) {
   const user = useAuthStore((state) => state.user);
   const setAuthModalOpen = useUIStore((state) => state.setAuthModalOpen);
+  const setImportModalOpen = useUIStore((state) => state.setImportModalOpen);
   const logoutMutation = useLogoutMutation();
   const navigate = useNavigate();
   const location = useLocation();
+
+  const isAdminOrMod = user && (user.role === 'admin' || user.role === 'moderator');
 
   // Estado del menú hamburguesa
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -79,6 +82,15 @@ export default function Header({ cleanPath, showHeaderSearch }) {
               <a href="/favorites" className={`nav-link ${cleanPath === 'favorites' ? 'active' : ''}`} style={{ color: 'var(--chord-color)', fontWeight: '600' }}>
                 Favoritos ❤️
               </a>
+            )}
+            {isAdminOrMod && (
+              <button
+                type="button"
+                className="nav-link import-nav-btn"
+                onClick={() => setImportModalOpen(true)}
+              >
+                Importar
+              </button>
             )}
           </nav>
         </div>
@@ -170,6 +182,15 @@ export default function Header({ cleanPath, showHeaderSearch }) {
               >
                 ❤️ Favoritos
               </a>
+            )}
+            {isAdminOrMod && (
+              <button
+                type="button"
+                className="mobile-nav-link"
+                onClick={() => { setImportModalOpen(true); setMobileMenuOpen(false); }}
+              >
+                📥 Importar canción
+              </button>
             )}
           </nav>
 

@@ -17,9 +17,11 @@ export default function SongView({ artistSlug, songSlug }) {
           <div className="breadcrumbs">
             <a href="/">Portada</a> &raquo; <a href={`/${artistSlug}`}>Artista</a> &raquo; <span>Canción</span>
           </div>
-          <h2 className="view-title">Cargando Canción...</h2>
+          <h2 className="view-title">Cargando canción...</h2>
         </header>
-        <div className="list-loading">Cargando versiones disponibles...</div>
+        <div className="list-loading auto-import-loading">
+          No está en el catálogo local. Buscando en LaCuerda.net...
+        </div>
       </section>
     );
   }
@@ -31,9 +33,9 @@ export default function SongView({ artistSlug, songSlug }) {
           <div className="breadcrumbs">
             <a href="/">Portada</a> &raquo; <a href={`/${artistSlug}`}>Artista</a> &raquo; <span>Error</span>
           </div>
-          <h2 className="view-title">Error al cargar canción</h2>
+          <h2 className="view-title">Canción no disponible</h2>
         </header>
-        <div className="list-empty">No se pudo encontrar el catálogo de la canción.</div>
+        <div className="list-empty">{error.message || 'No se pudo encontrar el catálogo de la canción.'}</div>
       </section>
     );
   }

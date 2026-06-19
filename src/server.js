@@ -1,4 +1,5 @@
 import Fastify from 'fastify';
+import rateLimit from '@fastify/rate-limit';
 import { db } from './db/index.js';
 import routes from './routes/index.js';
 import { hashPassword } from './utils/crypto.js';
@@ -8,6 +9,9 @@ import { sql } from 'drizzle-orm';
 const fastify = Fastify({
   logger: true
 });
+
+// Rate limit solo en rutas que lo declaren explícitamente
+fastify.register(rateLimit, { global: false });
 
 // Registrar todas las rutas y plugins estáticos
 fastify.register(routes);

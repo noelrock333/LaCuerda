@@ -2657,6 +2657,60 @@ input[type="range"]::-webkit-slider-thumb:hover {
   to { transform: rotate(360deg); }
 }
 
+.import-nav-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font: inherit;
+  padding: 0;
+}
+
+.import-modal-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.import-modal-checkbox input {
+  accent-color: var(--accent);
+}
+
+.import-modal-result {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-bottom: 8px;
+}
+
+.import-modal-summary {
+  margin: 0 0 8px;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.import-modal-links {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.import-modal-links a {
+  color: var(--accent-light);
+  text-decoration: none;
+}
+
+.import-modal-links a:hover {
+  text-decoration: underline;
+}
+
+.auto-import-loading {
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
 /* ==========================================================================
    NUEVOS CONTROLES DE TABLATURA (LÍNEA DIVISORA Y BOTONES CIRCULARES)
    ========================================================================== */

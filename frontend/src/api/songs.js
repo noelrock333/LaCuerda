@@ -34,3 +34,17 @@ export async function updateVersionApi(id, data) {
 export async function getVersionTxtApi(artistSlug, versionSlug) {
   return await apiFetch(`/TXT/${artistSlug}/${versionSlug}`);
 }
+
+export async function importSongApi(url, downloadAllVersions = false) {
+  return await apiFetch('/api/songs/import', {
+    method: 'POST',
+    body: JSON.stringify({ url, downloadAllVersions })
+  });
+}
+
+export async function autoImportSongApi(artistSlug, slug, type) {
+  return await apiFetch('/api/songs/auto-import', {
+    method: 'POST',
+    body: JSON.stringify({ artistSlug, slug, type })
+  });
+}

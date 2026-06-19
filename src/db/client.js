@@ -2,7 +2,7 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import { eq, sql, or, and } from 'drizzle-orm';
 import pg from 'pg';
 import { songs, users, sessions, favorites, failedUrls } from './schema.js';
-import { slugify, getSongSlug } from '../utils/slugify.js';
+import { slugify, getSongSlug, getArtistSlugFromSourceUrl } from '../utils/slugify.js';
 
 const { Pool } = pg;
 
@@ -188,16 +188,36 @@ export class ChordsDatabase {
   }
 
   /**
-   * Obtiene todas las canciones guardadas de un artista a partir de su slug.
+   * Resuelve el nombre del artista a partir de un slug de ruta (nombre o segmento URL).
    */
-  async getSongsByArtistSlug(artistSlug) {
+  async resolveArtistNameBySlug(artistSlug) {
     const allArtistsResult = await this.db
       .select({ artist: songs.artist })
       .from(songs);
-    
-    const uniqueArtists = Array.from(new Set(allArtistsResult.map(row => row.artist)));
-    
-    const matchedArtist = uniqueArtists.find(artist => slugify(artist) === artistSlug);
+
+    const uniqueArtists = Array.from(new Set(allArtistsResult.map((row) => row.artist)));
+
+    const byName = uniqueArtists.find((artist) => slugify(artist) === artistSlug);
+    if (byName) return byName;
+
+    const urlRows = await this.db
+      .select({ artist: songs.artist, source_url: songs.source_url })
+      .from(songs);
+
+    for (const row of urlRows) {
+      if (getArtistSlugFromSourceUrl(row.source_url) === artistSlug) {
+        return row.artist;
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Obtiene todas las canciones guardadas de un artista a partir de su slug.
+   */
+  async getSongsByArtistSlug(artistSlug) {
+    const matchedArtist = await this.resolveArtistNameBySlug(artistSlug);
     if (!matchedArtist) return [];
 
     return await this.db
@@ -224,12 +244,7 @@ export class ChordsDatabase {
    * Resuelve el nombre del artista original a partir de su slug.
    */
   async getArtistNameBySlug(artistSlug) {
-    const allArtistsResult = await this.db
-      .select({ artist: songs.artist })
-      .from(songs);
-    
-    const uniqueArtists = Array.from(new Set(allArtistsResult.map(row => row.artist)));
-    return uniqueArtists.find(artist => slugify(artist) === artistSlug) || null;
+    return await this.resolveArtistNameBySlug(artistSlug);
   }
 
   /**

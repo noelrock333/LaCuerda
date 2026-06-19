@@ -319,9 +319,11 @@ export default function VersionView({ artistSlug, versionSlug }) {
           <div className="breadcrumbs">
             <a href="/">Portada</a> &raquo; <span>Cargando...</span>
           </div>
-          <h2 className="view-title">Cargando Acordes...</h2>
+          <h2 className="view-title">Cargando acordes...</h2>
         </header>
-        <div className="list-loading">Cargando tablatura...</div>
+        <div className="list-loading auto-import-loading">
+          No está en el catálogo local. Buscando en LaCuerda.net...
+        </div>
       </section>
     );
   }
@@ -333,9 +335,11 @@ export default function VersionView({ artistSlug, versionSlug }) {
           <div className="breadcrumbs">
             <a href="/">Portada</a> &raquo; <span>Error</span>
           </div>
-          <h2 className="view-title">Error al cargar tablatura</h2>
+          <h2 className="view-title">Tablatura no disponible</h2>
         </header>
-        <div className="list-empty">No se pudo descargar o localizar la versión clásica especificada.</div>
+        <div className="list-empty">
+          {songError?.message || 'No se pudo descargar o localizar la versión especificada.'}
+        </div>
       </section>
     );
   }
