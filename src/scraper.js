@@ -463,8 +463,9 @@ export function parseLaCuerdaPage(html, sourceUrl, archiveUrl) {
 }
 
 /**
- * Parsea una página de índice alfabético de LaCuerda.net (ej: /tabs/z/index0.html).
- * Extrae los links a páginas de artistas y detecta si hay una página siguiente.
+ * Parsea una página de índice alfabético de LaCuerda.net (ej: /tabs/a/index0.html).
+ * Extrae los links a páginas de artistas y detecta si hay una página siguiente
+ * (index0 → index100 → index200, bloques de 100 artistas).
  *
  * @param {string} html HTML de la página de índice
  * @param {string} baseUrl URL base para resolver hrefs relativos (ej: https://acordes.lacuerda.net/tabs/z/index0.html)
@@ -490,11 +491,10 @@ export function parseAlphaIndexPage(html, baseUrl) {
     artists.push({ url: resolvedUrl, name: rawText });
   });
 
-  // Detectar paginación: buscar link a la siguiente página de índice (index1.html, index2.html…)
-  // El patrón es indexN.html donde N > número actual
+  // Paginación por bloques de 100: index0 → index100 → index200 …
   const currentMatch = baseUrl.match(/index(\d+)\.html/);
   const currentPage = currentMatch ? parseInt(currentMatch[1], 10) : 0;
-  const nextPageUrl = new URL(`index${currentPage + 1}.html`, baseUrl).href;
+  const nextPageUrl = new URL(`index${currentPage + 100}.html`, baseUrl).href;
 
   // Verificar si la página actual tiene resultados (si no, no hay siguiente)
   const hasResults = artists.length > 0;

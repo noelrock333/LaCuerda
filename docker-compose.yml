@@ -39,6 +39,8 @@ services:
       PORT: ${APP_PORT:-3004}
     ports:
       - "${APP_PORT:-3004}:${APP_PORT:-3004}"
+    volumes:
+      - ./crawl_state.json:/app/crawl_state.json
 
 volumes:
   postgres_data:
