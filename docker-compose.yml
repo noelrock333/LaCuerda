@@ -37,10 +37,11 @@ services:
       DB_PASSWORD: ${DB_PASSWORD:-postgres}
       DB_NAME: ${DB_NAME:-la_cuerda_offline_db}
       PORT: ${APP_PORT:-3004}
+      CRAWL_STATE_FILE: /app/data/crawl_state.json
     ports:
       - "${APP_PORT:-3004}:${APP_PORT:-3004}"
     volumes:
-      - ./crawl_state.json:/app/crawl_state.json
+      - ./data:/app/data
 
 volumes:
   postgres_data:

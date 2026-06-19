@@ -13,3 +13,7 @@ public/icons.svg
 
 # Variables de entorno (credenciales reales)
 .env
+
+# Estado del crawler alfabético (persistido en Docker via ./data)
+data/crawl_state.json
+crawl_state.json

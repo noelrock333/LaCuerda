@@ -29,7 +29,7 @@ import {
 
 // ─── Configuración ────────────────────────────────────────────────────────────
 
-const STATE_FILE = path.resolve('crawl_state.json');
+const STATE_FILE = path.resolve(process.env.CRAWL_STATE_FILE || 'crawl_state.json');
 
 const db = new ChordsDatabase(config.postgres);
 
@@ -105,13 +105,30 @@ function loadState() {
 }
 
 /**
- * Guarda el estado en disco de forma atómica (escribe a .tmp y renombra).
+ * Guarda el estado en disco. Intenta escritura atómica (tmp + rename);
+ * en volúmenes Docker/bind mount de un solo archivo, rename falla con EBUSY
+ * y se usa escritura directa como fallback.
  */
 function saveState(state) {
   state.lastUpdated = new Date().toISOString();
+  const content = JSON.stringify(state, null, 2);
+  const dir = path.dirname(STATE_FILE);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+
   const tmpPath = STATE_FILE + '.tmp';
-  fs.writeFileSync(tmpPath, JSON.stringify(state, null, 2), 'utf-8');
-  fs.renameSync(tmpPath, STATE_FILE);
+  try {
+    fs.writeFileSync(tmpPath, content, 'utf-8');
+    fs.renameSync(tmpPath, STATE_FILE);
+  } catch (err) {
+    if (['EBUSY', 'EPERM', 'EXDEV', 'ENOTSUP'].includes(err.code)) {
+      fs.writeFileSync(STATE_FILE, content, 'utf-8');
+      try { fs.unlinkSync(tmpPath); } catch { /* ignore */ }
+      return;
+    }
+    throw err;
+  }
 }
 
 // ─── Utilidades ───────────────────────────────────────────────────────────────
