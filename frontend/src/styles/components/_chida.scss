@@ -1,0 +1,41 @@
+/* ==========================================================================
+   ESTILOS DE CATEGORÍA CHIDA (AWESOME FAVORITES)
+   ========================================================================== */
+.chida-fire-btn {
+  transition: all 0.2s ease;
+}
+
+.chida-fire-btn:hover {
+  color: #f97316 !important;
+  background-color: rgba(249, 115, 22, 0.08) !important;
+  transform: scale(1.05);
+}
+
+.chida-fire-btn.is-awesome {
+  color: #f97316 !important;
+  background-color: rgba(249, 115, 22, 0.1) !important;
+  border-color: rgba(249, 115, 22, 0.3) !important;
+  box-shadow: 0 0 12px rgba(249, 115, 22, 0.2);
+}
+
+.chida-badge-fav {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #ea580c; /* Orange-600 */
+  background-color: #ffedd5; /* Orange-100 */
+  border: 1px solid #fed7aa; /* Orange-200 */
+  padding: 1px 6px;
+  border-radius: 4px;
+  margin-left: 8px;
+  vertical-align: middle;
+  transition: all 0.15s ease;
+}
+
+.dark .chida-badge-fav {
+  color: #f97316;
+  background-color: rgba(249, 115, 22, 0.15);
+  border-color: rgba(249, 115, 22, 0.3);
+}

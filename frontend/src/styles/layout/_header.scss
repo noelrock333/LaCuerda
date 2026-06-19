@@ -1,0 +1,86 @@
+@use '../abstracts/variables' as *;
+
+/* ==========================================================================
+   ENCABEZADO FIJO (HEADER)
+   ========================================================================== */
+.app-header {
+  height: var(--header-height);
+  flex-shrink: 0;
+  background-color: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 40px;
+  z-index: 200;
+  position: relative;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.header-logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  user-select: none;
+
+  h1 {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    color: var(--text-highlight);
+
+    span {
+      color: var(--accent);
+      font-weight: 400;
+    }
+  }
+}
+
+.logo-icon {
+  font-size: 24px;
+}
+
+.header-search-container {
+  position: relative;
+  width: 320px;
+
+  input {
+    width: 100%;
+    background-color: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 40px 8px 16px;
+    color: var(--text-main);
+    font-size: 13px;
+    transition: all 0.2s ease;
+
+    &:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+      background-color: var(--surface-hover);
+    }
+  }
+}
+
+.search-icon {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  font-size: 13px;
+  pointer-events: none;
+}

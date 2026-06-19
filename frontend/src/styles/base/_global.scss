@@ -1,0 +1,101 @@
+/* ==========================================================================
+   SISTEMA DE DISEÑO & TOKENS (CSS VARIABLES)
+   ========================================================================== */
+:root {
+  --bg-primary: #f4f4f5;
+  --bg-secondary: #ffffff;
+  --surface: #fafafa;
+  --surface-hover: #f1f1f5;
+  --border: oklch(0.922 0 0);
+
+  --text-main: #27272a;
+  --text-muted: #71717a;
+  --text-highlight: #09090b;
+
+  --accent: oklch(0.97 0 0);
+  --accent-light: #1d4ed8;
+  --accent-glow: rgba(37, 99, 235, 0.08);
+
+  --chord-color: #db2777; /* Rosa/fucsia oscuro con excelente contraste en fondo claro */
+  --chord-bg: rgba(219, 39, 119, 0.06);
+
+  --font-interface: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-tab: 'Fira Code', 'JetBrains Mono', Courier, monospace;
+
+  --header-height: 70px;
+
+  /* Altura visible real (Safari iOS: 100vh incluye la barra del navegador) */
+  --app-height: 100vh;
+  --app-height: 100dvh;
+
+  /* Espacio para toolbar flotante en vista de versión (mobile) */
+  --mobile-fab-clearance: 56px;
+
+  /* Tamaños dinámicos controlados por JS */
+  --tab-font-size: 16px;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --radius: 0.625rem;
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+}
+
+/* Reset básico */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  height: 100%;
+  height: var(--app-height);
+  overflow-x: hidden;
+  max-width: 100%;
+}
+
+body {
+  font-family: var(--font-interface);
+  background-color: var(--bg-primary);
+  color: var(--text-main);
+  height: var(--app-height);
+  min-height: -webkit-fill-available;
+  overflow: hidden;
+  overflow-x: hidden;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+#root {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  min-height: 0;
+}

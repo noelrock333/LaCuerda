@@ -1,0 +1,49 @@
+/* ==========================================================================
+   BREADCRUMBS (RUTAS DE NAVEGACIÓN)
+   ========================================================================== */
+.breadcrumbs {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+
+  a {
+    color: var(--text-muted);
+    text-decoration: none;
+    transition: color 0.15s ease;
+
+    &:hover {
+      color: var(--accent-light);
+      text-decoration: underline;
+    }
+  }
+}
+
+/* Cabeceras de vista */
+.view-header {
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 20px;
+  margin-bottom: 28px;
+}
+
+.view-title {
+  font-size: 30px;
+  font-weight: 700;
+  color: var(--text-highlight);
+  letter-spacing: -0.8px;
+}
+
+.view-subtitle {
+  font-size: 18px;
+  font-weight: 400;
+  color: var(--text-muted);
+  margin-top: 4px;
+
+  a {
+    color: var(--accent-light);
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}

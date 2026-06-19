@@ -1,0 +1,48 @@
+/* ==========================================================================
+   CONTENEDOR DE VISTAS PRINCIPALES (SCROLLABLE)
+   ========================================================================== */
+.main-content {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior-x: none;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  position: relative;
+  display: block;
+
+  > * {
+    min-height: min-content;
+  }
+}
+
+.view-section {
+  padding: 40px 48px;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  animation: fadeIn 0.2s ease-out;
+  display: flex;
+  flex-direction: column;
+
+  &--wide {
+    max-width: none;
+  }
+}
+
+.hidden {
+  display: none !important;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

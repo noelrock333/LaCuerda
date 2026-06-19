@@ -1,0 +1,194 @@
+@use '../abstracts/mixins' as *;
+@use '../abstracts/variables' as *;
+
+/* ==========================================================================
+   ÍNDICE ALFABÉTICO (ALPHABETICAL INDEX)
+   ========================================================================== */
+.alphabet-nav {
+  margin-top: 32px;
+  width: 100%;
+  max-width: 800px;
+  text-align: center;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+
+  &-title {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    letter-spacing: 0.8px;
+    margin-bottom: 14px;
+  }
+}
+
+.alphabet-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+
+  a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background-color: var(--surface);
+    color: var(--text-main);
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 14px;
+    transition: all 0.2s ease;
+
+    &:hover,
+    &.active {
+      background-color: var(--accent);
+      border-color: var(--accent);
+      color: #ffffff;
+    }
+
+    &:hover {
+      box-shadow: 0 4px 10px var(--accent-glow);
+    }
+  }
+}
+
+/* Vista de Índice Alfabético de Artistas */
+.alphabet-layout {
+  @include browse-layout;
+}
+
+.alphabet-sidebar {
+  @include browse-sidebar(220px);
+
+  &-header {
+    @include sidebar-accent-header;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 14px 16px;
+  }
+
+  &-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent-light);
+  }
+
+  &-count {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+  }
+
+  &-links {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+
+    a {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 38px;
+      border-right: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      background-color: var(--bg-secondary);
+      color: var(--text-main);
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 13px;
+      transition: background-color 0.15s ease, color 0.15s ease;
+
+      &:nth-child(4n) {
+        border-right: none;
+      }
+
+      &:hover {
+        background-color: $accent-tint-08;
+        color: var(--accent-light);
+      }
+
+      &.active {
+        background-color: var(--accent-light);
+        color: #ffffff;
+      }
+    }
+  }
+}
+
+#view-alphabet {
+  .alphabet-sidebar-count {
+    color: var(--accent-light);
+    opacity: 0.85;
+  }
+}
+
+.alphabet-main {
+  @include browse-main;
+
+  .list-loading,
+  .list-empty {
+    @include browse-empty-panel;
+  }
+}
+
+.artists-index-container {
+  @include browse-table-container;
+
+  .list-empty {
+    padding: 48px 24px;
+  }
+}
+
+.artists-index-table {
+  display: flex;
+  flex-direction: column;
+
+  &-header {
+    @include browse-table-header;
+  }
+
+  &-body {
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+.artists-index-col-meta {
+  @include browse-table-meta;
+}
+
+.artists-index-row {
+  @include browse-table-row(48px 1fr 24px);
+
+  &:hover {
+    .artists-index-row-index {
+      opacity: 1;
+    }
+
+    .artists-index-row-arrow {
+      @include browse-row-arrow-hover;
+    }
+  }
+
+  &-index {
+    @include browse-row-index;
+  }
+
+  &-arrow {
+    @include browse-row-arrow;
+  }
+}
+
+.artist-index-name {
+  @include browse-row-title;
+}

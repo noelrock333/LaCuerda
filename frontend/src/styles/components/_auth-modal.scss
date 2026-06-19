@@ -1,0 +1,204 @@
+/* ==========================================================================
+   AUTH MODAL STYLING (PREMIUM CLASSIC LA CUERDA STYLE)
+   ========================================================================== */
+.auth-modal-content {
+  background-color: var(--bg-secondary) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 16px !important;
+  padding: 32px !important;
+  max-width: 420px !important;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1) !important;
+  font-family: var(--font-interface);
+}
+
+.auth-modal-header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.auth-modal-title {
+  font-size: 24px !important;
+  font-weight: 750 !important;
+  color: var(--text-highlight) !important;
+  letter-spacing: -0.5px;
+}
+
+.auth-modal-description {
+  font-size: 13px !important;
+  color: var(--text-muted) !important;
+  margin-top: 6px !important;
+}
+
+.auth-modal-error {
+  padding: 12px;
+  background-color: #fef2f2;
+  border: 1px solid #fee2e2;
+  border-radius: 8px;
+  color: #ef4444;
+  font-size: 13px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.auth-modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.auth-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.auth-input-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.auth-input-field {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-main);
+  font-size: 14px;
+  font-family: var(--font-interface);
+  transition: all 0.2s ease;
+}
+
+.auth-input-field:focus {
+  outline: none;
+  border-color: var(--accent);
+  background-color: var(--bg-secondary);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.auth-submit-btn {
+  width: 100%;
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #ffffff;
+  background-color: var(--accent);
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 6px;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+}
+
+.auth-submit-btn:hover {
+  background-color: var(--accent-light);
+}
+
+.auth-submit-btn:active {
+  opacity: 0.85;
+}
+
+.auth-submit-btn:disabled {
+  background-color: var(--border);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.auth-toggle-btn {
+  background: none;
+  border: none;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--accent);
+  cursor: pointer;
+  transition: color 0.15s ease;
+  text-decoration: none;
+}
+
+.auth-toggle-btn:hover {
+  color: var(--accent-light);
+  text-decoration: underline;
+}
+
+.auth-modal-footer {
+  text-align: center;
+  margin-top: 20px;
+}
+
+.auth-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: auth-spin 0.6s linear infinite;
+}
+
+@keyframes auth-spin {
+  to { transform: rotate(360deg); }
+}
+
+.import-nav-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font: inherit;
+  padding: 0;
+}
+
+.import-modal-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.import-modal-checkbox input {
+  accent-color: var(--accent);
+}
+
+.import-modal-result {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-bottom: 8px;
+}
+
+.import-modal-summary {
+  margin: 0 0 8px;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.import-modal-links {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.import-modal-links a {
+  color: var(--accent-light);
+  text-decoration: none;
+}
+
+.import-modal-links a:hover {
+  text-decoration: underline;
+}
+
+.auto-import-loading {
+  color: var(--text-secondary);
+  font-style: italic;
+}

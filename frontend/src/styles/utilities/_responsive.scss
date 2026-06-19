@@ -1,0 +1,183 @@
+@use '../abstracts/variables' as *;
+
+/* ==========================================================================
+   RESPONSIVIDAD (MOBILE & TABLET SUPPORT)
+   ========================================================================== */
+@media (max-width: $breakpoint-tablet) {
+  .app-header {
+    height: var(--header-height);
+    padding: 0 16px;
+  }
+
+  .header-nav,
+  .header-right {
+    display: none;
+  }
+
+  :root {
+    --tab-font-size: 12px;
+  }
+
+  .view-section {
+    padding: 20px;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  .version-page-layout,
+  .version-main-content {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  .controls-divider-buttons {
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 0 12px;
+    justify-content: center;
+  }
+
+  .home-search-results {
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .artist-layout,
+  .alphabet-layout {
+    flex-direction: column;
+    gap: 16px;
+    align-items: stretch;
+  }
+
+  #view-alphabet,
+  #view-artist {
+    .view-header {
+      padding-bottom: 10px;
+      margin-bottom: 12px;
+    }
+
+    .breadcrumbs {
+      margin-bottom: 2px;
+      font-size: 11px;
+    }
+
+    .view-title {
+      font-size: 20px;
+    }
+  }
+
+  #view-alphabet .pagination-container {
+    width: 100%;
+  }
+
+  .artist-sidebar,
+  .alphabet-sidebar {
+    width: 100%;
+    position: static;
+  }
+
+  .artist-sidebar {
+    &-hero {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 16px;
+    }
+
+    &-cover {
+      width: 104px;
+      height: 104px;
+      margin: 0;
+      flex-shrink: 0;
+
+      &-initials {
+        font-size: 30px;
+      }
+    }
+
+    &-identity {
+      text-align: left;
+      min-width: 0;
+    }
+
+    &-name {
+      font-size: 18px;
+    }
+
+    &-stats {
+      justify-content: flex-start;
+    }
+
+    &-panel {
+      max-height: none;
+    }
+  }
+
+  .alphabet-main,
+  .artist-main {
+    width: 100%;
+  }
+
+  .artists-index-table-header,
+  .artist-songs-table-header {
+    padding: 10px 14px;
+    gap: 12px;
+  }
+
+  .artists-index-row {
+    grid-template-columns: 36px 1fr 20px;
+    gap: 8px;
+    padding: 15px 14px;
+  }
+
+  .artist-songs-row {
+    grid-template-columns: 36px 1fr auto 20px;
+    gap: 8px;
+    padding: 15px 14px;
+
+    &-versions {
+      display: none;
+    }
+  }
+
+  .artist-songs-tab {
+    padding: 10px 14px;
+    font-size: 11px;
+  }
+
+  .artist-top-list--catalog {
+    max-height: 280px;
+  }
+
+  .artist-index-name,
+  .artist-songs-row-title {
+    font-size: 14px;
+  }
+
+  .alphabet-sidebar-links {
+    grid-template-columns: repeat(7, 1fr);
+
+    a {
+      &:nth-child(4n) {
+        border-right: 1px solid var(--border);
+      }
+
+      &:nth-child(7n) {
+        border-right: none;
+      }
+    }
+  }
+
+  .toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+    padding: 16px;
+  }
+
+  .scroll-speed-group {
+    border-left: none;
+    padding-left: 0;
+    margin-top: 8px;
+  }
+}

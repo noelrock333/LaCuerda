@@ -1,0 +1,204 @@
+@use 'variables' as *;
+
+@mixin browse-layout {
+  display: flex;
+  gap: $browse-layout-gap;
+  align-items: flex-start;
+  width: 100%;
+}
+
+@mixin browse-sidebar($width) {
+  width: $width;
+  flex-shrink: 0;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border);
+  position: sticky;
+  top: $sidebar-sticky-top;
+  overflow: hidden;
+}
+
+@mixin browse-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+@mixin browse-empty-panel {
+  padding: 48px 24px;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border);
+  text-align: center;
+  color: var(--text-muted);
+}
+
+@mixin browse-table-container {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border);
+  width: 100%;
+  overflow: hidden;
+}
+
+@mixin browse-table-header {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 20px;
+  background: linear-gradient(90deg, $accent-tint-08 0%, $accent-tint-025 100%);
+  border-bottom: 1px solid var(--border);
+  border-left: 3px solid var(--accent-light);
+  font-size: $font-size-table-header;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent-light);
+}
+
+@mixin browse-table-meta {
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  color: var(--text-muted);
+}
+
+@mixin browse-table-row($columns, $padding-y: 17px, $padding-x: 20px) {
+  display: grid;
+  grid-template-columns: $columns;
+  align-items: center;
+  gap: 12px;
+  padding: $padding-y $padding-x;
+  border-bottom: 1px solid var(--border);
+  text-decoration: none;
+  color: var(--text-main);
+  transition: background-color 0.15s ease, color 0.15s ease;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &:nth-child(even) {
+    background-color: $accent-tint-025;
+  }
+
+  &:hover {
+    background-color: $accent-tint-07;
+    color: var(--text-highlight);
+  }
+}
+
+@mixin browse-row-index {
+  font-size: $font-size-row-index;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent-light);
+  text-align: right;
+  opacity: 0.75;
+}
+
+@mixin browse-row-title {
+  font-size: $font-size-row-title;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@mixin browse-row-arrow {
+  font-size: 18px;
+  line-height: 1;
+  color: var(--text-muted);
+  text-align: center;
+  transition: color 0.15s ease, transform 0.15s ease;
+}
+
+@mixin browse-row-arrow-hover {
+  color: var(--accent-light);
+  transform: translateX(2px);
+}
+
+@mixin sidebar-accent-header {
+  background: linear-gradient(135deg, $accent-tint-10 0%, $accent-tint-03 100%);
+  border-bottom: 1px solid var(--border);
+  border-left: 3px solid var(--accent-light);
+}
+
+@mixin sidebar-tab-bar {
+  display: flex;
+  background-color: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+@mixin sidebar-tab-button($font-size: 10px) {
+  flex: 1;
+  border: none;
+  background: none;
+  font-family: var(--font-interface);
+  font-size: $font-size;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 11px 8px;
+  line-height: 1.25;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+
+  &:hover {
+    color: var(--accent-light);
+    background-color: $accent-tint-05;
+  }
+
+  &.active {
+    color: var(--accent-light);
+    background-color: $accent-tint-08;
+    border-bottom-color: var(--accent-light);
+  }
+}
+
+@mixin filter-tab-bar {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  background-color: var(--bg-secondary);
+  overflow-x: auto;
+}
+
+@mixin filter-tab-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  background: none;
+  font-family: var(--font-interface);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  padding: 12px 18px;
+  cursor: pointer;
+  white-space: nowrap;
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+
+  &:hover {
+    color: var(--accent-light);
+    background-color: $accent-tint-04;
+  }
+
+  &.active {
+    color: var(--accent-light);
+    background-color: $accent-tint-07;
+    border-bottom-color: var(--accent-light);
+  }
+}
+
+@mixin song-type-tag($color, $background) {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  white-space: nowrap;
+  color: $color;
+  background-color: $background;
+}

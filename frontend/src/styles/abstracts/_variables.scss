@@ -1,0 +1,20 @@
+// Tokens SCSS (complementan las CSS variables de :root)
+$accent-blue: #1d4ed8;
+
+$accent-tint-025: rgba(37, 99, 235, 0.025);
+$accent-tint-03: rgba(37, 99, 235, 0.03);
+$accent-tint-04: rgba(37, 99, 235, 0.04);
+$accent-tint-05: rgba(37, 99, 235, 0.05);
+$accent-tint-07: rgba(37, 99, 235, 0.07);
+$accent-tint-08: rgba(37, 99, 235, 0.08);
+$accent-tint-10: rgba(37, 99, 235, 0.1);
+$accent-tint-12: rgba(37, 99, 235, 0.12);
+
+$browse-layout-gap: 32px;
+$sidebar-sticky-top: calc(var(--header-height) + 20px);
+
+$font-size-table-header: 11px;
+$font-size-row-title: 15px;
+$font-size-row-index: 12px;
+
+$breakpoint-tablet: 900px;

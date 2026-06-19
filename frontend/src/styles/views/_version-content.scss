@@ -1,0 +1,259 @@
+/* ==========================================================================
+   VISTA 4: VISUALIZADOR DE VERSIÓN (VERSION)
+   ========================================================================== */
+.version-header-layout {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 20px;
+  margin-bottom: 24px;
+}
+
+.version-meta-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.meta-detail-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.meta-detail-item .meta-icon {
+  font-size: 14px;
+  opacity: 0.8;
+}
+
+.meta-detail-item .meta-value {
+  color: var(--text-main);
+  font-weight: 500;
+}
+
+.version-header-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  text-align: right;
+}
+
+.song-code-box pre {
+  font-family: var(--font-tab);
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.contributor-info-box {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.contributor-link {
+  color: var(--accent-light);
+  text-decoration: underline;
+  font-weight: 600;
+}
+
+.contributor-link:hover {
+  color: var(--accent);
+}
+
+
+.version-badges {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.contributor-tag {
+  background-color: var(--border);
+  color: var(--text-muted);
+}
+
+/* Barra de herramientas */
+.toolbar {
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px 24px;
+  margin-bottom: 28px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 32px;
+}
+
+.tool-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.tool-group label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* Sliders personalizados */
+input[type="range"] {
+  -webkit-appearance: none;
+  width: 140px;
+  height: 6px;
+  background: var(--border);
+  border-radius: 3px;
+  outline: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  background: var(--accent-light);
+}
+
+/* Botones de Autoscroll */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 18px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  font-family: var(--font-interface);
+  transition: all 0.2s ease;
+}
+
+.btn-primary {
+  background-color: var(--accent);
+  color: #ffffff;
+}
+
+.btn-primary:hover {
+  background-color: var(--accent-light);
+}
+
+.btn-primary.active {
+  background-color: #e23e57;
+}
+
+.btn-icon {
+  font-size: 11px;
+}
+
+.scroll-speed-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-left: 1px solid var(--border);
+  padding-left: 20px;
+}
+
+.scroll-speed-group span {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent-light);
+  width: 28px;
+  text-align: right;
+}
+
+/* Caja de acordes */
+.chords-box {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px 20px;
+  margin-bottom: 28px;
+}
+
+.chords-box h4 {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+  margin-bottom: 12px;
+}
+
+.chords-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chord-badge {
+  font-family: var(--font-tab);
+  font-size: 14px;
+  font-weight: 600;
+  background-color: var(--chord-bg);
+  border: 1px solid rgba(255, 94, 151, 0.2);
+  color: var(--chord-color);
+  padding: 4px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+/* Panel de la tablatura */
+.tab-content-container {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  width: 100%;
+  max-width: 100%;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 28px;
+  margin-bottom: 40px;
+}
+
+.tab-content {
+  font-family: var(--font-tab);
+  font-size: var(--tab-font-size);
+  line-height: 1.6;
+  color: var(--text-main);
+  white-space: pre;
+  max-width: 100%;
+}
+
+.tab-content a {
+  color: var(--chord-color);
+  font-weight: 600;
+  text-decoration: none;
+  background-color: var(--chord-bg);
+  padding: 0px 4px;
+  border-radius: 3px;
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+
+.tab-content a:hover {
+  background-color: rgba(255, 94, 151, 0.2);
+  color: #ff85ae;
+}
+
+.tab-content em {
+  font-style: normal;
+  color: var(--text-muted);
+}

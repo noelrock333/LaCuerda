@@ -1,0 +1,360 @@
+@use '../abstracts/mixins' as *;
+@use '../abstracts/variables' as *;
+
+/* ==========================================================================
+   VISTA 2: DISCOGRAFÍA DEL ARTISTA (ARTIST)
+   ========================================================================== */
+.artist-layout {
+  @include browse-layout;
+}
+
+.artist-sidebar {
+  @include browse-sidebar(300px);
+  display: flex;
+  flex-direction: column;
+
+  &-hero {
+    padding: 20px 18px 18px;
+    background:
+      radial-gradient(circle at 20% 0%, hsla(var(--artist-cover-hue), 65%, 55%, 0.28) 0%, transparent 55%),
+      radial-gradient(circle at 90% 100%, hsla(calc(var(--artist-cover-hue) + 40), 70%, 45%, 0.18) 0%, transparent 50%),
+      linear-gradient(180deg, rgba(15, 23, 42, 0.04) 0%, transparent 100%);
+    border-bottom: 1px solid var(--border);
+  }
+
+  &-cover {
+    width: 132px;
+    height: 132px;
+    margin: 0 auto 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(
+      145deg,
+      hsl(var(--artist-cover-hue), 58%, 48%) 0%,
+      hsl(calc(var(--artist-cover-hue) + 28), 62%, 36%) 100%
+    );
+    box-shadow:
+      0 10px 28px hsla(var(--artist-cover-hue), 55%, 40%, 0.28),
+      inset 0 1px 0 rgba(255, 255, 255, 0.18);
+
+    &-initials {
+      font-size: 38px;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      color: rgba(255, 255, 255, 0.95);
+      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+    }
+  }
+
+  &-identity {
+    text-align: center;
+  }
+
+  &-eyebrow {
+    display: block;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent-light);
+    margin-bottom: 6px;
+  }
+
+  &-name {
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--text-highlight);
+    line-height: 1.2;
+    letter-spacing: -0.03em;
+    margin: 0 0 8px;
+  }
+
+  &-stats {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+  }
+
+  &-stat-dot {
+    opacity: 0.55;
+  }
+
+  &-tabs {
+    @include sidebar-tab-bar;
+  }
+
+  &-tab {
+    @include sidebar-tab-button;
+  }
+
+  &-panel {
+    flex: 1;
+    min-height: 0;
+  }
+
+  &-empty {
+    padding: 24px 16px;
+    text-align: center;
+    font-size: 12px;
+    line-height: 1.45;
+    color: var(--text-muted);
+  }
+}
+
+.artist-top-box {
+  padding: 14px 0 6px;
+  flex: 1;
+
+  h4 {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    padding: 0 16px 10px;
+    margin: 0;
+  }
+}
+
+.artist-top-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+
+  &--catalog {
+    max-height: 420px;
+    overflow-y: auto;
+  }
+
+  li {
+    margin: 0;
+  }
+}
+
+.artist-top-track {
+  display: grid;
+  grid-template-columns: 22px 36px 1fr 24px;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  text-decoration: none;
+  color: inherit;
+  transition: background-color 0.15s ease;
+
+  &:hover {
+    background-color: $accent-tint-07;
+
+    .artist-top-track-title {
+      color: var(--accent-light);
+    }
+  }
+
+  &-info {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  &-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-main);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    transition: color 0.15s ease;
+  }
+
+  &-meta {
+    font-size: 11px;
+    color: var(--text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.artist-top-rank {
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+  text-align: center;
+  transition: opacity 0.15s ease;
+
+  &--dot {
+    font-size: 14px;
+    line-height: 1;
+    color: var(--accent-light);
+    opacity: 0.65;
+  }
+}
+
+.artist-top-art {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.92);
+  background: linear-gradient(
+    145deg,
+    hsl(var(--track-hue), 55%, 50%) 0%,
+    hsl(calc(var(--track-hue) + 24), 58%, 38%) 100%
+  );
+  box-shadow: 0 3px 10px hsla(var(--track-hue), 50%, 40%, 0.22);
+}
+
+.artist-top-play {
+  font-size: 11px;
+  color: var(--accent-light);
+  transform: translateX(-4px);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+@media (hover: hover) {
+  .artist-top-track:hover {
+    .artist-top-rank {
+      opacity: 0;
+    }
+
+    .artist-top-play {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  .artist-top-play {
+    opacity: 0;
+  }
+}
+
+@media (hover: none) {
+  .artist-top-play {
+    opacity: 0.5;
+    transform: none;
+  }
+}
+
+.artist-main {
+  @include browse-main;
+
+  .list-loading,
+  .list-empty {
+    @include browse-empty-panel;
+  }
+}
+
+.artist-songs-container {
+  @include browse-table-container;
+
+  .list-empty {
+    padding: 48px 24px;
+  }
+}
+
+.artist-songs-table {
+  display: flex;
+  flex-direction: column;
+
+  &-header {
+    @include browse-table-header;
+  }
+
+  &-body {
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+.artist-songs-col-meta {
+  @include browse-table-meta;
+}
+
+.artist-songs-tabs {
+  @include filter-tab-bar;
+}
+
+.artist-songs-tab {
+  @include filter-tab-button;
+
+  &-count {
+    font-size: 10px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--accent-light);
+    background-color: var(--accent-glow);
+    padding: 2px 6px;
+  }
+
+  &:not(.active) &-count {
+    color: var(--text-muted);
+    background-color: rgba(0, 0, 0, 0.05);
+  }
+}
+
+.artist-songs-empty-filter {
+  padding: 40px 20px;
+  text-align: center;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.artist-songs-row {
+  @include browse-table-row(48px 1fr auto auto 24px);
+
+  &:hover {
+    .artist-songs-row-index {
+      opacity: 1;
+    }
+
+    .artist-songs-row-arrow {
+      @include browse-row-arrow-hover;
+    }
+  }
+
+  &-index {
+    @include browse-row-index;
+  }
+
+  &-title {
+    @include browse-row-title;
+  }
+
+  &-versions {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--accent-light);
+    background-color: var(--accent-glow);
+    padding: 2px 7px;
+    white-space: nowrap;
+  }
+
+  &-arrow {
+    @include browse-row-arrow;
+  }
+}
+
+.song-type-tag {
+  &--acordes {
+    @include song-type-tag($accent-blue, $accent-tint-12);
+  }
+
+  &--tab {
+    @include song-type-tag(#c2410c, rgba(234, 88, 12, 0.12));
+  }
+
+  &--bass {
+    @include song-type-tag(#7c3aed, rgba(124, 58, 237, 0.12));
+  }
+}

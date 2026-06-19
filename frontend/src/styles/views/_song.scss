@@ -1,0 +1,163 @@
+/* ==========================================================================
+   VISTA 3: LISTADO DE VERSIONES (SONG)
+   ========================================================================== */
+/* Vista de Versiones de Canción (Preview Grid) */
+.versions-grid-container {
+  margin-bottom: 40px;
+}
+
+.versions-grid-container h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-highlight);
+  margin-bottom: 20px;
+}
+
+.versions-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 24px;
+}
+
+.version-preview-card {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  height: 380px;
+  cursor: pointer;
+  text-decoration: none;
+  color: var(--text-main);
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+}
+
+.version-preview-card:hover {
+  border-color: var(--accent);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+}
+
+.version-card-header {
+  padding: 14px 20px;
+  background-color: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.version-card-title-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.version-card-icon {
+  font-size: 16px;
+}
+
+.version-card-title {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--text-highlight);
+}
+
+.version-card-badge-container {
+  display: flex;
+  align-items: center;
+}
+
+/* Badge de "mejor versión" */
+.best-version-badge {
+  background-color: #dcfce7;
+  color: #15803d;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Indicador de calidad (barras de rating) */
+.rating-bars {
+  display: flex;
+  gap: 2px;
+}
+
+.rating-bar {
+  width: 4px;
+  height: 12px;
+  background-color: var(--border);
+  border-radius: 1px;
+}
+
+.rating-bar.active {
+  background-color: #eab308;
+}
+
+/* Cuerpo de la tarjeta con miniatura */
+.version-card-body {
+  padding: 20px;
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+  background-color: var(--bg-secondary);
+}
+
+.version-card-body::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 50px;
+  background: linear-gradient(to top, var(--bg-secondary), rgba(255, 255, 255, 0));
+  pointer-events: none;
+}
+
+.version-card-preview-text {
+  font-family: var(--font-tab);
+  font-size: 11px;
+  line-height: 1.5;
+  white-space: pre;
+  color: var(--text-main);
+  margin: 0;
+  user-select: none;
+}
+
+/* Pie de la tarjeta */
+.version-card-footer {
+  padding: 12px 20px;
+  background-color: var(--surface);
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.version-card-contributor {
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 150px;
+}
+
+.version-card-number {
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 12px;
+  border-radius: 4px;
+  text-decoration: none;
+}
