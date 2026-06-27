@@ -75,9 +75,6 @@ export default function Header({ cleanPath, showHeaderSearch }) {
             <h1>LaCuerda <span>Offline</span></h1>
           </div>
           <nav className="header-nav">
-            <a href="/catalog" className={`nav-link ${cleanPath === 'catalog' ? 'active' : ''}`}>
-              Biblioteca
-            </a>
             {user && (
               <a href="/favorites" className={`nav-link ${cleanPath === 'favorites' ? 'active' : ''}`} style={{ color: 'var(--chord-color)', fontWeight: '600' }}>
                 Favoritos ❤️
@@ -166,13 +163,6 @@ export default function Header({ cleanPath, showHeaderSearch }) {
               onClick={() => setMobileMenuOpen(false)}
             >
               🏠 Portada
-            </a>
-            <a
-              href="/catalog"
-              className={`mobile-nav-link ${cleanPath === 'catalog' ? 'active' : ''}`}
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              📚 Biblioteca
             </a>
             {user && (
               <a
