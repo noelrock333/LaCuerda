@@ -1,28 +1,24 @@
+@use '../abstracts/mixins' as *;
+@use '../abstracts/variables' as *;
+
 /* ==========================================================================
    DISEÑO DE PÁGINA DE VERSIÓN Y BARRA LATERAL (SIDEBAR DE VERSIONES)
    ========================================================================== */
 .version-page-layout {
   display: flex;
-  gap: 32px;
+  gap: 24px;
   width: 100%;
   max-width: 1300px;
   margin: 0 auto;
   align-items: flex-start;
-  padding: 40px 48px;
+  padding: 32px 48px;
   animation: fadeIn 0.2s ease-out;
 }
 
 .version-sidebar {
-  width: 290px;
-  flex-shrink: 0;
-  background-color: var(--bg-secondary);
-  border: 1px solid var(--border);
-  border-radius: 12px;
+  @include browse-sidebar(290px);
   display: flex;
   flex-direction: column;
-  overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
-  position: sticky;
   top: 20px;
 }
 
@@ -31,54 +27,23 @@
   min-width: 0;
 }
 
-/* Pestañas de la barra lateral */
 .sidebar-tabs {
-  display: flex;
-  background-color: var(--surface);
-  border-bottom: 1px solid var(--border);
-  padding: 6px;
-  gap: 4px;
+  @include sidebar-tab-bar;
 }
 
 .sidebar-tab-btn {
-  flex: 1;
-  background: none;
-  border: none;
-  font-family: var(--font-interface);
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--text-muted);
-  padding: 8px 4px;
-  border-radius: 6px;
-  cursor: pointer;
-  text-align: center;
-  transition: all 0.15s ease;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
+  @include sidebar-tab-button(10px);
 }
 
-.sidebar-tab-btn:hover {
-  color: var(--text-highlight);
-  background-color: var(--surface-hover);
-}
-
-.sidebar-tab-btn.active {
-  background-color: var(--accent);
-  color: #ffffff;
-}
-
-/* Contenido de la barra lateral */
 .sidebar-content {
-  padding: 12px;
   max-height: 550px;
   overflow-y: auto;
 }
 
-/* Listas en el sidebar */
 .sidebar-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 0;
   list-style: none;
 }
 
@@ -86,27 +51,35 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 12px;
-  border-radius: 8px;
-  background-color: var(--surface);
-  border: 1px solid var(--border);
+  gap: 10px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
   text-decoration: none;
   color: var(--text-main);
   font-size: 13px;
-  transition: all 0.15s ease;
-}
+  background-color: transparent;
+  transition: background-color 0.15s ease, color 0.15s ease;
 
-.sidebar-item-link:hover {
-  background-color: var(--surface-hover);
-  border-color: var(--accent);
-  color: var(--text-highlight);
-}
+  &:last-child {
+    border-bottom: none;
+  }
 
-.sidebar-item-link.active {
-  background-color: var(--accent-glow);
-  border-color: var(--accent);
-  color: var(--accent-light);
-  font-weight: 600;
+  &:nth-child(even) {
+    background-color: $accent-tint-025;
+  }
+
+  &:hover {
+    background-color: $accent-tint-07;
+    color: var(--text-highlight);
+  }
+
+  &.active {
+    background-color: $accent-tint-08;
+    color: var(--accent-light);
+    font-weight: 600;
+    border-left: 3px solid var(--accent-light);
+    padding-left: 13px;
+  }
 }
 
 .sidebar-item-left {
@@ -114,11 +87,13 @@
   align-items: center;
   gap: 10px;
   min-width: 0;
+  flex: 1;
 }
 
 .sidebar-item-icon {
-  font-size: 16px;
+  font-size: 14px;
   flex-shrink: 0;
+  opacity: 0.85;
 }
 
 .sidebar-item-text {
@@ -127,6 +102,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   flex: 1;
+  font-weight: 500;
 }
 
 .sidebar-item-meta {
@@ -136,6 +112,7 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-weight: 400;
 }
 
 .sidebar-item-rating {
@@ -145,23 +122,30 @@
   align-items: center;
 }
 
-/* Ratings en barra lateral */
 .sidebar-rating-bar {
   width: 3px;
   height: 10px;
   background-color: var(--border);
-  border-radius: 0.5px;
+
+  &.active {
+    background-color: #eab308;
+  }
+
+  &.active.best {
+    background-color: #22c55e;
+  }
 }
 
-.sidebar-rating-bar.active {
-  background-color: #eab308;
+.version-badges-count {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent-light);
+  background-color: var(--accent-glow);
+  padding: 2px 7px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
-.sidebar-rating-bar.active.best {
-  background-color: #22c55e;
-}
-
-/* Botón de toggle para móviles */
 .sidebar-toggle-btn {
   display: none;
   align-items: center;
@@ -171,20 +155,19 @@
   padding: 12px;
   background-color: var(--bg-secondary);
   border: 1px solid var(--border);
-  border-radius: 8px;
   margin-bottom: 16px;
   font-size: 13px;
   font-weight: 700;
   font-family: var(--font-interface);
   color: var(--text-main);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
   user-select: none;
-}
 
-.sidebar-toggle-btn:hover {
-  background-color: var(--surface-hover);
-  border-color: var(--accent);
+  &:hover {
+    background-color: $accent-tint-05;
+    border-color: var(--accent-light);
+  }
 }
 
 @media (max-width: 900px) {
@@ -198,7 +181,6 @@
     width: 100%;
     position: static;
     display: none;
-    box-shadow: none;
   }
 
   .version-sidebar.open {
@@ -212,12 +194,9 @@
 
   .version-main-content {
     width: 100%;
-    /* Contenido principal sin padding lateral para que la tablatura use todo el viewport */
   }
 
-  /* El contenedor de tablatura ocupa todo el ancho (sin bordes redondeados ni padding lateral) */
   .tab-content-container {
-    border-radius: 0;
     border-left: none;
     border-right: none;
     padding: 16px 12px;
@@ -227,23 +206,9 @@
     margin-bottom: env(safe-area-inset-bottom, 0px);
   }
 
-  /* La cabecera de la canción y controles con padding lateral normal */
-  .version-header-layout {
-    padding-left: 16px;
-    padding-right: 16px;
-    flex-direction: column;
-    gap: 12px;
-    align-items: flex-start;
-  }
-
-  .version-header-right {
-    align-items: flex-start;
-    text-align: left;
-    width: 100%;
-  }
-
-  .controls-divider-container {
-    padding: 0 16px;
+  .version-command-bar {
+    margin-left: 16px;
+    margin-right: 16px;
   }
 
   .version-chords-diagrams-container {
@@ -255,13 +220,11 @@
     margin: 0 16px 16px;
   }
 
-  /* Ajustar también el header del view-section en versión */
   .version-main-content .view-section {
     padding: 0;
   }
 }
 
-/* Acordes colapsables: solo mobile (oculto en desktop) */
 .version-chords-mobile {
   display: none;
 }
@@ -274,7 +237,6 @@
   padding: 12px 16px;
   background-color: var(--bg-secondary);
   border: 1px solid var(--border);
-  border-radius: 8px;
   font-family: var(--font-interface);
   font-size: 12px;
   font-weight: 600;
@@ -282,28 +244,28 @@
   letter-spacing: 0.5px;
   color: var(--text-muted);
   cursor: pointer;
-  transition: all 0.15s ease;
-}
+  transition: border-color 0.15s ease, color 0.15s ease;
 
-.version-chords-mobile-toggle:hover {
-  border-color: var(--accent);
-  color: var(--text-highlight);
+  &:hover {
+    border-color: var(--accent-light);
+    color: var(--text-highlight);
+  }
 }
 
 .version-chords-chevron {
   flex-shrink: 0;
   transition: transform 0.2s ease;
   color: var(--text-muted);
-}
 
-.version-chords-chevron.open {
-  transform: rotate(90deg);
+  &.open {
+    transform: rotate(90deg);
+  }
 }
 
 .version-chords-mobile-list {
-  margin-top: 12px;
+  margin-top: 0;
   padding: 12px 16px;
   background-color: var(--bg-secondary);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-top: none;
 }

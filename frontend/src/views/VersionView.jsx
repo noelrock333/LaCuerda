@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import GuitarChord from '../components/GuitarChord';
-import { Maximize2, Minimize2, Printer, FileText, Heart, Pencil, Play, Pause, Type, Sliders, ChevronRight, ArrowUp, Flame } from 'lucide-react';
+import { Maximize2, Minimize2, Printer, FileText, Heart, Pencil, Play, Pause, ChevronRight, ArrowUp, Flame } from 'lucide-react';
 import useAuthStore from '../store/useAuthStore.js';
 import useUIStore from '../store/useUIStore.js';
 import { useVersionDetailQuery, useSongDetailQuery, useArtistDetailQuery, useUpdateVersionMutation } from '../hooks/useSongs.js';
@@ -11,7 +11,31 @@ function getScrollContainer() {
 }
 
 const HISTORY_KEY = 'lacuerda_view_history';
+const SCROLL_SPEED_KEY = 'lacuerda_scroll_speed';
+const DEFAULT_SCROLL_SPEED = 4;
+const SCROLL_SPEED_LEVELS = [8, 7, 6, 5, 4, 3, 2, 1];
 const MOBILE_BREAKPOINT = '(max-width: 900px)';
+
+function getStoredScrollSpeed() {
+  try {
+    const saved = localStorage.getItem(SCROLL_SPEED_KEY);
+    if (saved !== null) {
+      const value = parseInt(saved, 10);
+      if (value >= 1 && value <= 8) return value;
+    }
+  } catch {
+    // ignore
+  }
+  return DEFAULT_SCROLL_SPEED;
+}
+
+function storeScrollSpeed(speed) {
+  try {
+    localStorage.setItem(SCROLL_SPEED_KEY, String(speed));
+  } catch {
+    // ignore
+  }
+}
 
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(() => window.matchMedia(MOBILE_BREAKPOINT).matches);
@@ -87,6 +111,185 @@ function highlightChords(content, chordsStr) {
   return highlightedLines.join('\n');
 }
 
+function getVersionTypeMeta(type) {
+  if (type === 'tab') return { label: 'Tablatura', className: 'version-command-type--tab' };
+  if (type === 'bass') return { label: 'Bajo', className: 'version-command-type--bass' };
+  return { label: 'Acordes', className: 'version-command-type--acordes' };
+}
+
+function VersionCommandBar({
+  song,
+  artistSlug,
+  songBaseSlug,
+  versionSlug,
+  isExpanded,
+  isFavorite,
+  isAwesome,
+  isEditing,
+  currentUser,
+  onToggleExpand,
+  onToggleFavorite,
+  onToggleAwesome,
+  onToggleEdit,
+  favoritePending,
+  awesomePending,
+}) {
+  const typeMeta = getVersionTypeMeta(song.type);
+
+  return (
+    <header className="version-command-bar">
+      <div className="version-command-info">
+        <nav className="version-command-crumbs" aria-label="Ruta de navegación">
+          <a href="/">Portada</a>
+          <span className="version-command-crumbs-sep" aria-hidden="true">›</span>
+          <a href={`/${artistSlug}`}>{song.artist}</a>
+          <span className="version-command-crumbs-sep" aria-hidden="true">›</span>
+          <a href={`/${artistSlug}/${songBaseSlug}`}>{song.title}</a>
+          <span className="version-command-crumbs-sep" aria-hidden="true">›</span>
+          <span className="version-command-crumbs-current">v{song.version_number}</span>
+        </nav>
+
+        <div className="version-command-headline">
+          <h1 className="version-command-title" id="version-view-title">{song.title}</h1>
+          <span className={`version-command-type ${typeMeta.className}`}>{typeMeta.label}</span>
+          <span className="version-command-ver">v{song.version_number}</span>
+        </div>
+
+        <p className="version-command-byline">
+          <a href={`/${artistSlug}`} id="version-view-artist">{song.artist}</a>
+        </p>
+
+        <div className="version-command-details">
+          <span className="version-command-detail">
+            Colab.{' '}
+            {song.contributor_id ? (
+              <a
+                href="javascript:void(0)"
+                className="version-command-detail-strong"
+                title={`ID: ${song.contributor_id}`}
+              >
+                {song.contributor}
+              </a>
+            ) : (
+              <strong className="version-command-detail-strong">{song.contributor}</strong>
+            )}
+          </span>
+
+          {song.song_code && (
+            <>
+              <span className="version-command-detail-sep" aria-hidden="true">·</span>
+              <span className="version-command-detail">
+                <code className="version-command-code" id="tCode">{song.song_code}</code>
+              </span>
+            </>
+          )}
+
+          {song.composers && (
+            <>
+              <span className="version-command-detail-sep" aria-hidden="true">·</span>
+              <span className="version-command-detail">{song.composers}</span>
+            </>
+          )}
+
+          {song.album && (
+            <>
+              <span className="version-command-detail-sep" aria-hidden="true">·</span>
+              <span className="version-command-detail">
+                {song.album}{song.year ? ` [${song.year}]` : ''}
+              </span>
+            </>
+          )}
+
+          {(song.source_url || song.archive_url) && (
+            <>
+              <span className="version-command-detail-sep" aria-hidden="true">·</span>
+              <span className="version-command-links">
+                {song.source_url && (
+                  <a id="version-link-original" href={song.source_url} target="_blank" rel="noopener noreferrer">
+                    Original ↗
+                  </a>
+                )}
+                {song.archive_url && (
+                  <a id="version-link-wayback" href={song.archive_url} target="_blank" rel="noopener noreferrer">
+                    Wayback ↗
+                  </a>
+                )}
+              </span>
+            </>
+          )}
+        </div>
+      </div>
+
+      <div className="version-command-actions" role="toolbar" aria-label="Acciones de versión">
+        <button
+          type="button"
+          className={`version-action-btn ${isExpanded ? 'active' : ''}`}
+          onClick={onToggleExpand}
+          data-tooltip={isExpanded ? 'Contraer pantalla' : 'Pantalla completa'}
+          title={isExpanded ? 'Contraer área de tablatura' : 'Expandir área de tablatura'}
+        >
+          {isExpanded ? <Minimize2 size={17} /> : <Maximize2 size={17} />}
+        </button>
+        <button
+          type="button"
+          className="version-action-btn"
+          onClick={() => window.print()}
+          data-tooltip="Imprimir versión"
+          title="Vista de impresión"
+        >
+          <Printer size={17} />
+        </button>
+        <button
+          type="button"
+          className="version-action-btn"
+          onClick={() => {
+            const txtSlug = `${versionSlug.replace(/\.shtml$/, '')}.txt`;
+            window.open(`/TXT/${artistSlug}/${txtSlug}`, '_blank');
+          }}
+          data-tooltip="Ver texto plano (.txt)"
+          title="Ver contenido en texto plano (.txt)"
+        >
+          <FileText size={17} />
+        </button>
+        <button
+          type="button"
+          className={`version-action-btn favorite-heart-btn ${isFavorite ? 'is-fav' : ''}`}
+          onClick={onToggleFavorite}
+          data-tooltip={isFavorite ? 'Quitar de favoritos' : 'Marcar favorito'}
+          title={isFavorite ? 'Quitar de favoritos' : 'Marcar como favorito'}
+          disabled={favoritePending}
+        >
+          <Heart size={17} fill={isFavorite ? 'var(--chord-color, #e11d48)' : 'none'} />
+        </button>
+        {isFavorite && (
+          <button
+            type="button"
+            className={`version-action-btn chida-fire-btn ${isAwesome ? 'is-awesome' : ''}`}
+            onClick={onToggleAwesome}
+            data-tooltip={isAwesome ? 'Quitar de chidas' : 'Marcar como chida 🔥'}
+            title={isAwesome ? 'Quitar marca chida' : 'Marcar como chida'}
+            style={{ color: isAwesome ? '#f97316' : 'var(--text-muted)' }}
+            disabled={awesomePending}
+          >
+            <Flame size={17} fill={isAwesome ? '#f97316' : 'none'} />
+          </button>
+        )}
+        {currentUser && (currentUser.role === 'admin' || currentUser.role === 'moderator') && (
+          <button
+            type="button"
+            className={`version-action-btn edit-version-btn ${isEditing ? 'active' : ''}`}
+            onClick={onToggleEdit}
+            data-tooltip={isEditing ? 'Cancelar edición' : 'Editar versión'}
+            title={isEditing ? 'Cancelar edición' : 'Editar versión'}
+          >
+            <Pencil size={17} />
+          </button>
+        )}
+      </div>
+    </header>
+  );
+}
+
 export default function VersionView({ artistSlug, versionSlug }) {
   const isMobile = useIsMobile();
   const currentUser = useAuthStore((state) => state.user);
@@ -139,19 +342,13 @@ export default function VersionView({ artistSlug, versionSlug }) {
 
   // Autoscroll states
   const [isScrolling, setIsScrolling] = useState(false);
-  const [scrollSpeed, setScrollSpeed] = useState(3);
+  const [scrollSpeed, setScrollSpeed] = useState(getStoredScrollSpeed);
+  const [showSpeedPicker, setShowSpeedPicker] = useState(false);
   const scrollIntervalRef = useRef(null);
 
-  // Floating panel states
-  const [isFloatingExpanded, setIsFloatingExpanded] = useState(() => {
-    const saved = localStorage.getItem('lacuerda_floating_expanded');
-    if (saved !== null) return saved === 'true';
-    return window.innerWidth > 900;
-  });
-
   useEffect(() => {
-    localStorage.setItem('lacuerda_floating_expanded', isFloatingExpanded);
-  }, [isFloatingExpanded]);
+    storeScrollSpeed(scrollSpeed);
+  }, [scrollSpeed]);
 
   // Modo pantalla completa en mobile: oculta header y UI secundaria
   useEffect(() => {
@@ -267,7 +464,21 @@ export default function VersionView({ artistSlug, versionSlug }) {
   }, [isScrolling, scrollSpeed]);
 
   const toggleAutoscroll = () => {
-    setIsScrolling((prev) => !prev);
+    if (isScrolling) {
+      setIsScrolling(false);
+      return;
+    }
+    setShowSpeedPicker(false);
+    setIsScrolling(true);
+  };
+
+  const toggleSpeedPicker = () => {
+    setShowSpeedPicker((prev) => !prev);
+  };
+
+  const selectScrollSpeed = (speed) => {
+    setScrollSpeed(speed);
+    setShowSpeedPicker(false);
   };
 
   const handleSaveChanges = () => {
@@ -500,138 +711,23 @@ export default function VersionView({ artistSlug, versionSlug }) {
       {/* Contenido principal de la canción */}
       <div className="version-main-content">
         <section id="view-version" className="view-section" style={{ padding: 0, margin: 0, maxWidth: 'none' }}>
-          <header className="view-header version-header-layout">
-            <div className="version-header-left">
-              <div className="breadcrumbs">
-                <a href="/">Portada</a> &raquo;{' '}
-                <a href={`/${artistSlug}`}>{song.artist}</a> &raquo;{' '}
-                <a href={`/${artistSlug}/${songBaseSlug}`}>{song.title}</a> &raquo;{' '}
-                <span>Versión {song.version_number}</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <h2 className="view-title" id="version-view-title">{song.title}</h2>
-              </div>
-              <h3 className="view-subtitle" id="version-view-artist">
-                por <a href={`/${artistSlug}`}>{song.artist}</a>
-              </h3>
-
-              {/* Metadatos adicionales */}
-              {(song.composers || song.album) && (
-                <div className="version-meta-details">
-                  {song.composers && (
-                    <div className="meta-detail-item composers">
-                      <span className="meta-icon">✍️</span>
-                      <span className="meta-value">{song.composers}</span>
-                    </div>
-                  )}
-                  {song.album && (
-                    <div className="meta-detail-item album">
-                      <span className="meta-icon">💿</span>
-                      <span className="meta-value">
-                        {song.album} {song.year ? `[${song.year}]` : ''}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
-            <div className="version-header-right">
-              {song.song_code && (
-                <div className="song-code-box">
-                  <pre id="tCode">{song.song_code}</pre>
-                </div>
-              )}
-              <div className="contributor-info-box">
-                <span>Enviado por </span>
-                {song.contributor_id ? (
-                  <a href="javascript:void(0)" className="contributor-link" title={`ID: ${song.contributor_id}`}>
-                    {song.contributor}
-                  </a>
-                ) : (
-                  <strong>{song.contributor}</strong>
-                )}
-              </div>
-              <div className="external-links">
-                {song.source_url && (
-                  <a id="version-link-original" href={song.source_url} target="_blank" rel="noopener noreferrer">
-                    Original ↗
-                  </a>
-                )}
-                {song.archive_url && (
-                  <a id="version-link-wayback" href={song.archive_url} target="_blank" rel="noopener noreferrer">
-                    Wayback ↗
-                  </a>
-                )}
-              </div>
-            </div>
-          </header>
-
-          {/* Divisor con controles integrados */}
-          <div className="controls-divider-container">
-            <div className="controls-divider-line"></div>
-            <div className="controls-divider-buttons">
-              <button
-                className={`control-circle-btn ${isExpanded ? 'active' : ''}`}
-                onClick={() => setIsExpanded(!isExpanded)}
-                data-tooltip={isExpanded ? "Contraer pantalla" : "Pantalla completa"}
-                title={isExpanded ? "Contraer área de tablatura" : "Expandir área de tablatura"}
-              >
-                {isExpanded ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
-              </button>
-              <button
-                className="control-circle-btn"
-                onClick={() => window.print()}
-                data-tooltip="Imprimir versión"
-                title="Vista de impresión"
-              >
-                <Printer size={18} />
-              </button>
-              <button
-                className="control-circle-btn"
-                onClick={() => {
-                  const txtSlug = versionSlug.replace(/\.shtml$/, '') + '.txt';
-                  window.open(`/TXT/${artistSlug}/${txtSlug}`, '_blank');
-                }}
-                data-tooltip="Ver texto plano (.txt)"
-                title="Ver contenido en texto plano (.txt)"
-              >
-                <FileText size={18} />
-              </button>
-              <button
-                className={`control-circle-btn favorite-heart-btn ${isFavorite ? 'is-fav' : ''}`}
-                onClick={toggleFavorite}
-                data-tooltip={isFavorite ? "Quitar de favoritos" : "Marcar favorito"}
-                title={isFavorite ? "Quitar de favoritos" : "Marcar como favorito"}
-                disabled={toggleFavoriteMutation.isPending}
-              >
-                <Heart size={18} fill={isFavorite ? "var(--chord-color, #e11d48)" : "none"} />
-              </button>
-              {isFavorite && (
-                <button
-                  className={`control-circle-btn chida-fire-btn ${isAwesome ? 'is-awesome' : ''}`}
-                  onClick={toggleAwesome}
-                  data-tooltip={isAwesome ? "Quitar de chidas" : "Marcar como chida 🔥"}
-                  title={isAwesome ? "Quitar marca chida (mejor calidad)" : "Marcar como chida (mejor calidad / interpretación)"}
-                  style={{ color: isAwesome ? '#f97316' : 'var(--text-muted)' }}
-                  disabled={awesomeMutation.isPending}
-                >
-                  <Flame size={18} fill={isAwesome ? "#f97316" : "none"} />
-                </button>
-              )}
-              {currentUser && (currentUser.role === 'admin' || currentUser.role === 'moderator') && (
-                <button
-                  className={`control-circle-btn edit-version-btn ${isEditing ? 'active' : ''}`}
-                  onClick={() => setIsEditing(!isEditing)}
-                  data-tooltip={isEditing ? "Cancelar edición" : "Editar versión"}
-                  title={isEditing ? "Cancelar edición" : "Editar versión"}
-                  style={{ color: 'var(--accent-light)' }}
-                >
-                  <Pencil size={18} />
-                </button>
-              )}
-            </div>
-          </div>
+          <VersionCommandBar
+            song={song}
+            artistSlug={artistSlug}
+            songBaseSlug={songBaseSlug}
+            versionSlug={versionSlug}
+            isExpanded={isExpanded}
+            isFavorite={isFavorite}
+            isAwesome={isAwesome}
+            isEditing={isEditing}
+            currentUser={currentUser}
+            onToggleExpand={() => setIsExpanded(!isExpanded)}
+            onToggleFavorite={toggleFavorite}
+            onToggleAwesome={toggleAwesome}
+            onToggleEdit={() => setIsEditing(!isEditing)}
+            favoritePending={toggleFavoriteMutation.isPending}
+            awesomePending={awesomeMutation.isPending}
+          />
 
           {isEditing ? (
             <div className="version-edit-form">
@@ -736,139 +832,80 @@ export default function VersionView({ artistSlug, versionSlug }) {
                 </button>
               )}
 
-              {/* Barra de herramientas flotante del lado derecho */}
+              {/* Barra flotante estilo LaCuerda: play → números → scroll */}
               <div className="floating-toolbar-container">
-                {!isFloatingExpanded ? (
-                  <div className="floating-toolbar-collapsed">
+                <div className={`floating-toolbar ${showSpeedPicker ? 'floating-toolbar--picking' : ''}`}>
+                  {showSpeedPicker && (
+                    <div className="floating-speed-picker" role="listbox" aria-label="Elegir velocidad de desfile">
+                      {SCROLL_SPEED_LEVELS.map((level) => (
+                        <button
+                          key={level}
+                          type="button"
+                          role="option"
+                          aria-selected={scrollSpeed === level}
+                          className={`floating-speed-option ${scrollSpeed === level ? 'selected' : ''}`}
+                          onClick={() => selectScrollSpeed(level)}
+                        >
+                          {level}x
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="floating-toolbar-actions">
                     <button
-                      className="floating-fab-btn"
-                      onClick={() => setIsFloatingExpanded(true)}
-                      title="Abrir ajustes de lectura"
-                    >
-                      <Sliders size={18} />
-                    </button>
-                    <button
-                      className={`floating-fab-btn ${isScrolling ? 'active' : ''}`}
+                      type="button"
+                      className={`floating-toolbar-play ${isScrolling ? 'active' : ''}`}
                       onClick={toggleAutoscroll}
-                      title={isScrolling ? "Pausar autoscroll" : "Iniciar autoscroll"}
+                      title={isScrolling ? 'Pausar autoscroll' : `Iniciar autoscroll (velocidad ${scrollSpeed})`}
+                      aria-pressed={isScrolling}
                     >
-                      {isScrolling ? <Pause size={16} /> : <Play size={16} />}
+                      {isScrolling ? <Pause size={18} /> : <Play size={18} />}
                     </button>
+
                     <button
-                      className="floating-fab-btn"
+                      type="button"
+                      className={`floating-toolbar-speed-btn ${showSpeedPicker ? 'active' : ''}`}
+                      onClick={toggleSpeedPicker}
+                      title="Cambiar velocidad de desfile"
+                      aria-expanded={showSpeedPicker}
+                      aria-label={`Velocidad ${scrollSpeed}. Pulsa para cambiar`}
+                    >
+                      {scrollSpeed}x
+                    </button>
+
+                    <div className="floating-toolbar-font">
+                      <button
+                        type="button"
+                        className="floating-toolbar-font-btn"
+                        onClick={() => setFontSize((prev) => Math.max(12, prev - 1))}
+                        title="Reducir letra"
+                        aria-label="Reducir tamaño de letra"
+                      >
+                        A−
+                      </button>
+                      <button
+                        type="button"
+                        className="floating-toolbar-font-btn"
+                        onClick={() => setFontSize((prev) => Math.min(28, prev + 1))}
+                        title="Aumentar letra"
+                        aria-label="Aumentar tamaño de letra"
+                      >
+                        A+
+                      </button>
+                    </div>
+
+                    <button
+                      type="button"
+                      className="floating-toolbar-top-btn"
                       onClick={scrollToTop}
                       title="Subir al inicio"
+                      aria-label="Subir al inicio"
                     >
                       <ArrowUp size={16} />
                     </button>
                   </div>
-                ) : (
-                  <div className="floating-toolbar-expanded">
-                    <div className="floating-toolbar-header">
-                      <span className="floating-toolbar-title">Ajustes de Lectura</span>
-                      <button
-                        className="floating-toolbar-close-btn"
-                        onClick={() => setIsFloatingExpanded(false)}
-                        title="Minimizar panel"
-                      >
-                        <ChevronRight size={18} />
-                      </button>
-                    </div>
-
-                    {/* Control de Autoscroll */}
-                    <div className="floating-toolbar-section">
-                      <button
-                        className={`floating-autoscroll-toggle ${isScrolling ? 'active' : ''}`}
-                        onClick={toggleAutoscroll}
-                      >
-                        {isScrolling ? <Pause size={16} /> : <Play size={16} />}
-                        <span>{isScrolling ? 'Pausar Scroll' : 'Autoscroll'}</span>
-                      </button>
-
-                      <div className="floating-toolbar-label">
-                        <span className="floating-toolbar-label-left">
-                          <Sliders size={13} style={{ transform: 'rotate(90deg)' }} /> Velocidad
-                        </span>
-                        <span className="floating-toolbar-value">x{scrollSpeed}</span>
-                      </div>
-                      <div className="floating-toolbar-controls">
-                        <input
-                          type="range"
-                          min="1"
-                          max="10"
-                          value={scrollSpeed}
-                          step="1"
-                          onChange={(e) => setScrollSpeed(parseInt(e.target.value, 10))}
-                        />
-                        <div className="floating-toolbar-btn-group">
-                          <button
-                            className="floating-toolbar-adjust-btn"
-                            onClick={() => setScrollSpeed(prev => Math.max(1, prev - 1))}
-                            title="Reducir velocidad"
-                          >
-                            -
-                          </button>
-                          <button
-                            className="floating-toolbar-adjust-btn"
-                            onClick={() => setScrollSpeed(prev => Math.min(10, prev + 1))}
-                            title="Aumentar velocidad"
-                          >
-                            +
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="floating-toolbar-divider" />
-
-                    {/* Control de Tamaño de Letra */}
-                    <div className="floating-toolbar-section">
-                      <div className="floating-toolbar-label">
-                        <span className="floating-toolbar-label-left">
-                          <Type size={14} /> Tamaño Letra
-                        </span>
-                        <span className="floating-toolbar-value">{fontSize}px</span>
-                      </div>
-                      <div className="floating-toolbar-controls">
-                        <input
-                          type="range"
-                          min="12"
-                          max="28"
-                          value={fontSize}
-                          step="1"
-                          onChange={(e) => setFontSize(parseInt(e.target.value, 10))}
-                        />
-                        <div className="floating-toolbar-btn-group">
-                          <button
-                            className="floating-toolbar-adjust-btn"
-                            onClick={() => setFontSize(prev => Math.max(12, prev - 1))}
-                            title="Reducir letra"
-                          >
-                            -
-                          </button>
-                          <button
-                            className="floating-toolbar-adjust-btn"
-                            onClick={() => setFontSize(prev => Math.min(28, prev + 1))}
-                            title="Aumentar letra"
-                          >
-                            +
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="floating-toolbar-divider" />
-
-                    {/* Botón rápido para subir al inicio */}
-                    <button
-                      className="floating-toolbar-top-btn"
-                      onClick={scrollToTop}
-                    >
-                      <ArrowUp size={14} />
-                      <span>Subir al inicio</span>
-                    </button>
-                  </div>
-                )}
+                </div>
               </div>
 
               {/* Acordes recomendados: colapsables en mobile, diagramas en desktop */}

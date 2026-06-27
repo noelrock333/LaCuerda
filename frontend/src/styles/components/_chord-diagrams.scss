@@ -4,19 +4,17 @@
 .version-chords-diagrams-container {
   background-color: var(--bg-secondary);
   border: 1px solid var(--border);
-  border-radius: 12px;
   padding: 20px;
   margin-bottom: 28px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
-}
 
-.version-chords-diagrams-container h4 {
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  letter-spacing: 0.5px;
-  margin-bottom: 16px;
+  h4 {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    letter-spacing: 0.5px;
+    margin-bottom: 16px;
+  }
 }
 
 .chords-diagrams-list {
@@ -26,44 +24,41 @@
   padding-bottom: 8px;
   scrollbar-width: thin;
   scrollbar-color: var(--border) transparent;
-}
 
-/* Scrollbar personalizado para navegadores Webkit */
-.chords-diagrams-list::-webkit-scrollbar {
-  height: 6px;
-}
+  &::-webkit-scrollbar {
+    height: 6px;
+  }
 
-.chords-diagrams-list::-webkit-scrollbar-track {
-  background: transparent;
-}
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
 
-.chords-diagrams-list::-webkit-scrollbar-thumb {
-  background-color: var(--border);
-  border-radius: 3px;
-}
+  &::-webkit-scrollbar-thumb {
+    background-color: var(--border);
+  }
 
-.chords-diagrams-list::-webkit-scrollbar-thumb:hover {
-  background-color: var(--text-muted);
+  &::-webkit-scrollbar-thumb:hover {
+    background-color: var(--text-muted);
+  }
 }
 
 .chord-diagram-card {
   background-color: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 8px;
   padding: 12px 6px;
   display: flex;
   flex-direction: column;
   align-items: center;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
   width: 110px;
   flex-shrink: 0;
   user-select: none;
-}
 
-.chord-diagram-card:hover {
-  border-color: var(--accent);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  &:hover {
+    border-color: var(--accent-light);
+    background-color: var(--surface-hover);
+  }
 }
 
 .chord-diagram-name {
@@ -81,10 +76,9 @@
   display: flex;
   justify-content: center;
   align-items: flex-start;
-}
 
-/* Escalar el dibujo SVG de vexchords para que quepa en la tarjeta compacta */
-.chord-diagram-svg-wrap > div {
-  transform: scale(0.62);
-  transform-origin: top center;
+  > div {
+    transform: scale(0.62);
+    transform-origin: top center;
+  }
 }

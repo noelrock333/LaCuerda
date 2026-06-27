@@ -1,331 +1,206 @@
+@use '../abstracts/variables' as *;
+
 /* ==========================================================================
-   BARRA DE HERRAMIENTAS FLOTANTE (FLOATING TOOLBAR)
+   BARRA FLOTANTE — estilo LaCuerda (play → números → desfile)
    ========================================================================== */
 .floating-toolbar-container {
   position: fixed;
-  right: 24px;
+  right: 20px;
   top: 50%;
   transform: translateY(-50%);
   z-index: 999;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
   pointer-events: none;
-}
 
-.floating-toolbar-container * {
-  pointer-events: auto;
-}
-
-/* Collapsed Trigger Pill */
-.floating-toolbar-collapsed {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  background-color: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--border);
-  border-radius: 30px;
-  padding: 8px;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  align-items: center;
-}
-
-.dark .floating-toolbar-collapsed {
-  background-color: rgba(30, 30, 35, 0.85);
-}
-
-/* Expanded Card */
-.floating-toolbar-expanded {
-  width: 240px;
-  background-color: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 16px;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -6px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  animation: slideInRight 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.dark .floating-toolbar-expanded {
-  background-color: rgba(30, 30, 35, 0.85);
-}
-
-@keyframes slideInRight {
-  from {
-    transform: translateX(20px);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
+  * {
+    pointer-events: auto;
   }
 }
 
-/* Header */
-.floating-toolbar-header {
+.floating-toolbar {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-bottom: 1px solid var(--border);
-  padding-bottom: 8px;
-}
-
-.floating-toolbar-title {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--text-highlight);
-  letter-spacing: 0.3px;
-}
-
-.floating-toolbar-close-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: var(--text-muted);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 4px;
-  border-radius: 50%;
-  transition: all 0.2s ease;
-}
-
-.floating-toolbar-close-btn:hover {
-  background-color: var(--surface-hover);
-  color: var(--text-highlight);
-}
-
-/* Sections */
-.floating-toolbar-section {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.floating-toolbar-label {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-muted);
-}
-
-.floating-toolbar-label-left {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.floating-toolbar-value {
-  color: var(--accent-light);
-  font-weight: 700;
-}
-
-/* Action Controls (Sliders + Buttons) */
-.floating-toolbar-controls {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.floating-toolbar-controls input[type="range"] {
-  flex: 1;
-  width: auto;
-}
-
-.floating-toolbar-btn-group {
-  display: flex;
+  flex-direction: row-reverse;
+  align-items: stretch;
   gap: 4px;
 }
 
-.floating-toolbar-adjust-btn {
-  width: 26px;
-  height: 26px;
-  border-radius: 6px;
+.floating-speed-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border);
+  animation: speedPickerIn 0.15s ease-out;
+}
+
+@keyframes speedPickerIn {
+  from {
+    opacity: 0;
+    transform: translateX(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.floating-speed-option {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 30px;
   border: 1px solid var(--border);
   background-color: var(--surface);
   color: var(--text-main);
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-}
-
-.floating-toolbar-adjust-btn:hover {
-  background-color: var(--surface-hover);
-  border-color: var(--text-muted);
-}
-
-.floating-toolbar-adjust-btn:active {
-  transform: scale(0.95);
-}
-
-/* Autoscroll main toggle button */
-.floating-autoscroll-toggle {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 10px 16px;
-  border-radius: 8px;
+  font-family: var(--font-interface);
   font-size: 13px;
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
   cursor: pointer;
-  border: none;
-  font-family: var(--font-interface);
-  transition: all 0.2s ease;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-}
+  transition: background-color 0.12s ease, border-color 0.12s ease, color 0.12s ease;
 
-.floating-autoscroll-toggle.active {
-  background-color: var(--chord-color);
-  color: #ffffff;
-  animation: pulseGlow 2s infinite;
-}
-
-.floating-autoscroll-toggle:not(.active) {
-  background-color: var(--accent-light);
-  color: #ffffff;
-}
-
-.floating-autoscroll-toggle:hover {
-  filter: brightness(1.1);
-}
-
-@keyframes pulseGlow {
-  0% {
-    box-shadow: 0 0 0 0 rgba(219, 39, 119, 0.4);
+  &:hover {
+    border-color: var(--accent-light);
+    color: var(--accent-light);
+    background-color: $accent-tint-07;
   }
-  70% {
-    box-shadow: 0 0 0 8px rgba(219, 39, 119, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(219, 39, 119, 0);
+
+  &.selected {
+    border-color: var(--accent-light);
+    background-color: $accent-tint-10;
+    color: var(--accent-light);
   }
 }
 
-/* FAB Action Buttons */
-.floating-fab-btn {
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  background-color: var(--surface);
+.floating-toolbar-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px;
+  background-color: var(--bg-secondary);
   border: 1px solid var(--border);
-  color: var(--text-main);
-  cursor: pointer;
+}
+
+.floating-toolbar-play {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-}
-
-.floating-fab-btn:hover {
-  background-color: var(--surface-hover);
-  color: var(--accent-light);
-}
-
-.floating-fab-btn.active {
-  background-color: var(--chord-color);
+  width: 42px;
+  height: 42px;
+  border: 1px solid var(--border);
+  background-color: var(--accent-light);
   color: #ffffff;
-  border-color: var(--chord-color);
-  animation: pulseGlowMini 2s infinite;
-}
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
 
-@keyframes pulseGlowMini {
-  0% {
-    box-shadow: 0 0 0 0 rgba(219, 39, 119, 0.4);
+  &:hover {
+    filter: brightness(1.08);
   }
-  70% {
-    box-shadow: 0 0 0 6px rgba(219, 39, 119, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(219, 39, 119, 0);
+
+  &.active {
+    background-color: var(--chord-color);
+    border-color: var(--chord-color);
   }
 }
 
-/* Divider inside card */
-.floating-toolbar-divider {
-  height: 1px;
-  background-color: var(--border);
-  margin: 4px 0;
+.floating-toolbar-speed-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 32px;
+  border: 1px solid var(--border);
+  background-color: var(--surface);
+  color: var(--accent-light);
+  font-family: var(--font-interface);
+  font-size: 14px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: background-color 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+
+  &:hover {
+    border-color: var(--accent-light);
+    background-color: $accent-tint-07;
+  }
+
+  &.active {
+    border-color: var(--accent-light);
+    background-color: $accent-tint-10;
+    color: var(--accent-light);
+  }
 }
 
-/* Scroll to top button in expanded */
+.floating-toolbar-font {
+  display: flex;
+  gap: 2px;
+}
+
+.floating-toolbar-font-btn {
+  flex: 1;
+  height: 28px;
+  border: 1px solid var(--border);
+  background-color: var(--surface);
+  color: var(--text-muted);
+  font-family: var(--font-interface);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+
+  &:hover {
+    color: var(--accent-light);
+    border-color: var(--accent-light);
+    background-color: $accent-tint-05;
+  }
+}
+
 .floating-toolbar-top-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-muted);
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 8px;
-  border-radius: 6px;
-  transition: all 0.2s ease;
   width: 100%;
+  height: 32px;
+  border: 1px solid var(--border);
+  background-color: var(--surface);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background-color 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+
+  &:hover {
+    color: var(--accent-light);
+    border-color: var(--accent-light);
+    background-color: $accent-tint-05;
+  }
 }
 
-.floating-toolbar-top-btn:hover {
-  background-color: var(--surface-hover);
-  color: var(--accent-light);
-}
-
-/* Mobile adaptations */
 @media (max-width: 900px) {
   .floating-toolbar-container {
-    right: 16px;
-    bottom: 24px;
+    right: 12px;
+    bottom: calc(16px + env(safe-area-inset-bottom, 0px));
     top: auto;
     transform: none;
-    /* Asegurar visibilidad en móvil */
-    display: flex;
     z-index: 1000;
   }
 
-  .floating-toolbar-collapsed {
-    /* FABs más grandes para pantalla táctil */
-    padding: 10px;
-    gap: 10px;
+  .floating-toolbar-play {
+    width: 46px;
+    height: 46px;
   }
 
-  .floating-fab-btn {
-    width: 44px;
-    height: 44px;
+  .floating-speed-option {
+    width: 38px;
+    height: 34px;
+    font-size: 14px;
   }
 
-  .floating-toolbar-expanded {
-    bottom: 0;
-    right: 0;
-    transform: none;
-    animation: slideInUp 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-    width: 260px;
+  .floating-toolbar-font-btn {
+    height: 32px;
+    font-size: 12px;
   }
-}
 
-@keyframes slideInUp {
-  from {
-    transform: translateY(20px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
+  .floating-toolbar-top-btn {
+    height: 36px;
   }
 }

@@ -16,9 +16,9 @@
   .version-sidebar,
   .sidebar-toggle-btn,
   .breadcrumbs,
-  .external-links,
-  .controls-divider-container,
-  .toolbar,
+  .version-command-actions,
+  .version-command-crumbs,
+  .version-command-links,
   .floating-toolbar-container,
   .version-chords-diagrams-container,
   #version-chords-box,
@@ -51,6 +51,30 @@
     border-bottom: 2px solid #000000 !important;
     margin-bottom: 24px !important;
     padding-bottom: 12px !important;
+  }
+
+  .view-header,
+  .version-command-bar {
+    border-bottom: 2px solid #000000 !important;
+    margin-bottom: 24px !important;
+    padding-bottom: 12px !important;
+    border: none !important;
+  }
+
+  .version-command-actions {
+    display: none !important;
+  }
+
+  .version-command-title {
+    color: #000000 !important;
+    font-size: 24pt !important;
+    margin: 0 0 4px 0 !important;
+  }
+
+  .version-command-byline {
+    color: #3f3f46 !important;
+    font-size: 14pt !important;
+    margin: 0 !important;
   }
 
   .view-title {
