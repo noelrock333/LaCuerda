@@ -30,7 +30,9 @@ function AlphabetSidebar({ letter, total }) {
   );
 }
 
-function AlphabetViewShell({ letter, total, children }) {
+function AlphabetViewShell({ letter, total, page, totalPages, children }) {
+  const pageLabel = totalPages > 1 ? ` · Página ${page} de ${totalPages}` : '';
+
   return (
     <section id="view-alphabet" className="view-section view-section--wide">
       <header className="view-header">
@@ -38,6 +40,11 @@ function AlphabetViewShell({ letter, total, children }) {
           <a href="/">Portada</a> &raquo; Artistas empezando con <span>{letter}</span>
         </div>
         <h2 className="view-title">Artistas: <span>{letter}</span></h2>
+        {total != null && (
+          <p className="browse-list-meta">
+            {total} artista{total !== 1 ? 's' : ''}{pageLabel}
+          </p>
+        )}
       </header>
 
       <div className="alphabet-layout">
@@ -72,18 +79,17 @@ export default function AlphabetView() {
   }
 
   return (
-    <AlphabetViewShell letter={letter} total={data.total}>
+    <AlphabetViewShell
+      letter={letter}
+      total={data.total}
+      page={data.page}
+      totalPages={data.totalPages}
+    >
       <div className="artists-index-container">
         {data.artists.length === 0 ? (
           <div className="list-empty">No se encontraron artistas con esta letra</div>
         ) : (
           <div className="artists-index-table" id="alphabet-artists-grid">
-            <div className="artists-index-table-header">
-              <span className="artists-index-col-name">Artista</span>
-              <span className="artists-index-col-meta">
-                Página {data.page} de {data.totalPages || 1}
-              </span>
-            </div>
             <div className="artists-index-table-body">
               {data.artists.map((art, index) => (
                 <a

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import useAuthStore from '../store/useAuthStore.js';
 import { useFavoritesQuery } from '../hooks/useFavorites.js';
 
@@ -11,6 +11,12 @@ function slugify(text) {
     .replace(/^_+|_+$/g, '');
 }
 
+function getTypeMeta(type) {
+  if (type === 'tab') return { label: 'Tab', className: 'song-type-tag--tab' };
+  if (type === 'bass') return { label: 'Bajo', className: 'song-type-tag--bass' };
+  return { label: 'Acordes', className: 'song-type-tag--acordes' };
+}
+
 export default function FavoritesView() {
   const token = useAuthStore((state) => state.token);
   const { data: favorites = [], isLoading, error } = useFavoritesQuery();
@@ -19,18 +25,20 @@ export default function FavoritesView() {
 
   if (!token) {
     return (
-      <div className="catalog-empty max-w-[500px] mx-auto mt-20 text-center p-8 bg-white rounded-xl shadow-lg border border-gray-100">
-        <span className="empty-icon text-5xl">🔒</span>
-        <h3 className="text-xl font-bold mt-4 text-gray-900">Acceso Restringido</h3>
-        <p className="text-gray-500 mt-2">Inicia sesión o regístrate para poder guardar y ver tus versiones favoritas.</p>
-      </div>
+      <section id="view-favorites" className="view-section view-section--wide">
+        <div className="catalog-empty catalog-empty--auth">
+          <span className="empty-icon">🔒</span>
+          <h3>Acceso restringido</h3>
+          <p>Inicia sesión o regístrate para guardar y ver tus versiones favoritas.</p>
+        </div>
+      </section>
     );
   }
 
   if (isLoading) {
     return (
       <div className="catalog-loading-container">
-        <div className="catalog-loading-spinner"></div>
+        <div className="catalog-loading-spinner" />
         <p>Cargando tus favoritos...</p>
       </div>
     );
@@ -46,71 +54,71 @@ export default function FavoritesView() {
     );
   }
 
-  // Agrupar los favoritos por artista en el cliente
   const grouped = {};
-  favorites.forEach(ver => {
+  favorites.forEach((ver) => {
     const artistName = ver.artist;
     const artistSlug = slugify(artistName);
-    const songTitle = ver.title;
-    
     const parts = ver.source_url.split('/');
-    const lastPart = parts[parts.length - 1];
-    const versionSlug = lastPart; // ej. "tu_falta_de_querer-5.shtml"
-    
+    const versionSlug = parts[parts.length - 1];
+
     if (!grouped[artistSlug]) {
       grouped[artistSlug] = {
         artist: artistName,
-        artistSlug: artistSlug,
-        versions: []
+        artistSlug,
+        versions: [],
       };
     }
 
     grouped[artistSlug].versions.push({
       id: ver.id,
-      title: songTitle,
+      title: ver.title,
       version_number: ver.version_number,
       type: ver.type,
-      contributor: ver.contributor,
-      versionSlug: versionSlug,
-      is_awesome: ver.is_awesome
+      versionSlug,
+      is_awesome: ver.is_awesome,
     });
   });
 
-  const catalog = Object.values(grouped).map(group => {
-    // Ordenar favoritos por título
-    group.versions.sort((a, b) => a.title.localeCompare(b.title));
-    return group;
-  }).sort((a, b) => a.artist.localeCompare(b.artist));
+  const catalog = Object.values(grouped)
+    .map((group) => {
+      group.versions.sort((a, b) => a.title.localeCompare(b.title));
+      return group;
+    })
+    .sort((a, b) => a.artist.localeCompare(b.artist));
 
-  // Filtrado local
-  const filteredCatalog = catalog.map(artistGroup => {
-    const matchedVersions = artistGroup.versions.filter(ver => {
-      const matchesQuery = ver.title.toLowerCase().includes(filterQuery.toLowerCase()) ||
-                           artistGroup.artist.toLowerCase().includes(filterQuery.toLowerCase());
-      const matchesAwesome = !onlyAwesome || ver.is_awesome;
-      return matchesQuery && matchesAwesome;
-    });
-    
-    if (matchedVersions.length > 0) {
-      return {
-        ...artistGroup,
-        versions: matchedVersions
-      };
-    }
-    return null;
-  }).filter(Boolean);
+  const filteredCatalog = catalog
+    .map((artistGroup) => {
+      const matchedVersions = artistGroup.versions.filter((ver) => {
+        const matchesQuery = ver.title.toLowerCase().includes(filterQuery.toLowerCase())
+          || artistGroup.artist.toLowerCase().includes(filterQuery.toLowerCase());
+        const matchesAwesome = !onlyAwesome || ver.is_awesome;
+        return matchesQuery && matchesAwesome;
+      });
+
+      if (matchedVersions.length > 0) {
+        return { ...artistGroup, versions: matchedVersions };
+      }
+      return null;
+    })
+    .filter(Boolean);
 
   const totalArtists = catalog.length;
   const totalFavorites = favorites.length;
 
   return (
-    <section id="view-catalog" className="view-section">
+    <section id="view-favorites" className="view-section view-section--wide">
       <div className="catalog-header">
         <div className="catalog-title-section">
           <h2>Tus Versiones <span>Favoritas</span></h2>
           <p>Tus tablaturas y acordes preferidos guardados para acceso rápido.</p>
+          <p className="browse-list-meta">
+            {totalArtists} artista{totalArtists !== 1 ? 's' : ''} · {totalFavorites} favorito{totalFavorites !== 1 ? 's' : ''}
+          </p>
+          <a href="/favorites/import" className="import-fav-from-list-link">
+            Importar desde links de lacuerda.net →
+          </a>
         </div>
-        
+
         <div className="catalog-stats">
           <div className="stat-card">
             <span className="stat-num">{totalArtists}</span>
@@ -123,8 +131,8 @@ export default function FavoritesView() {
         </div>
       </div>
 
-      <div className="favorites-filter-row" style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap', marginBottom: '24px', width: '100%' }}>
-        <div className="catalog-filter-box" style={{ flex: 1, margin: 0 }}>
+      <div className="catalog-filters-row">
+        <div className="catalog-filter-box catalog-filter-box--inline">
           <span className="filter-search-icon">🔍</span>
           <input
             type="text"
@@ -133,18 +141,17 @@ export default function FavoritesView() {
             onChange={(e) => setFilterQuery(e.target.value)}
           />
           {filterQuery && (
-            <button className="clear-filter-btn" onClick={() => setFilterQuery('')}>
+            <button type="button" className="clear-filter-btn" onClick={() => setFilterQuery('')}>
               &times;
             </button>
           )}
         </div>
-        
-        <label className="chida-filter-toggle" style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: '600', color: 'var(--text-main)', userSelect: 'none' }}>
-          <input 
-            type="checkbox" 
-            checked={onlyAwesome} 
-            onChange={(e) => setOnlyAwesome(e.target.checked)} 
-            style={{ width: '16px', height: '16px', accentColor: 'var(--chord-color)' }}
+
+        <label className="catalog-chida-toggle">
+          <input
+            type="checkbox"
+            checked={onlyAwesome}
+            onChange={(e) => setOnlyAwesome(e.target.checked)}
           />
           <span>Mostrar solo chidas 🔥</span>
         </label>
@@ -157,48 +164,41 @@ export default function FavoritesView() {
           <p>{filterQuery ? 'Prueba con otros términos.' : 'Explora la biblioteca y presiona el corazón en cualquier tablatura para guardarla.'}</p>
         </div>
       ) : (
-        <div className="catalog-grid">
-          {filteredCatalog.map(group => (
-            <div key={group.artistSlug} className="artist-catalog-card border-pink-100 hover:border-pink-300">
-              <header className="artist-catalog-header">
-                <h3>{group.artist}</h3>
-                <span className="artist-song-count text-pink-600 bg-pink-50 px-2 py-0.5 rounded-full text-xs font-semibold">
+        <div className="catalog-list">
+          {filteredCatalog.map((group) => (
+            <section key={group.artistSlug} className="catalog-artist-block catalog-artist-block--favorites">
+              <header className="catalog-artist-header">
+                <a href={`/${group.artistSlug}`} className="catalog-artist-name">
+                  {group.artist}
+                </a>
+                <span className="catalog-artist-count">
                   {group.versions.length} {group.versions.length === 1 ? 'favorito' : 'favoritos'}
                 </span>
               </header>
-              <div className="artist-songs-list">
-                {group.versions.map(ver => {
-                  let typeIcon = '🎼';
-                  let typeLabel = 'Acordes';
-                  if (ver.type === 'tab') {
-                    typeIcon = '🎸';
-                    typeLabel = 'Tab';
-                  } else if (ver.type === 'bass') {
-                    typeIcon = '🎻';
-                    typeLabel = 'Bajo';
-                  }
-
+              <div className="catalog-artist-songs">
+                {group.versions.map((ver, index) => {
+                  const typeMeta = getTypeMeta(ver.type);
                   return (
                     <a
                       key={ver.id}
                       href={`/${group.artistSlug}/${ver.versionSlug}`}
-                      className="catalog-song-item hover:bg-pink-50/30 transition-colors"
+                      className="catalog-song-row catalog-song-row--favorites"
                     >
-                      <div className="song-item-info">
-                        <span className="song-item-icon">{typeIcon}</span>
-                        <span className="song-item-title">
-                          {ver.title}
-                          {ver.is_awesome && <span className="chida-badge-fav" title="Chida (mejor calidad)">🔥 Chida</span>}
-                        </span>
-                      </div>
-                      <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-md font-medium">
-                        v{ver.version_number}
+                      <span className="catalog-song-row-index">{index + 1}</span>
+                      <span className="catalog-song-row-title">
+                        {ver.title}
+                        {ver.is_awesome && (
+                          <span className="chida-badge-fav" title="Chida (mejor calidad)">🔥 Chida</span>
+                        )}
                       </span>
+                      <span className={`song-type-tag ${typeMeta.className}`}>{typeMeta.label}</span>
+                      <span className="catalog-song-row-badge">v{ver.version_number}</span>
+                      <span className="catalog-song-row-arrow" aria-hidden="true">›</span>
                     </a>
                   );
                 })}
               </div>
-            </div>
+            </section>
           ))}
         </div>
       )}

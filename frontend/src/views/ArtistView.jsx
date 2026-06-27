@@ -189,7 +189,7 @@ function ArtistSidebar({ artist, slug, songs, topSongs }) {
   );
 }
 
-function ArtistViewShell({ breadcrumbLabel, title, sidebar, children }) {
+function ArtistViewShell({ breadcrumbLabel, title, listMeta, sidebar, children }) {
   return (
     <section id="view-artist" className="view-section view-section--wide">
       <header className="view-header">
@@ -197,6 +197,7 @@ function ArtistViewShell({ breadcrumbLabel, title, sidebar, children }) {
           <a href="/">Portada</a> &raquo; <span id="artist-breadcrumb-name">{breadcrumbLabel}</span>
         </div>
         <h2 className="view-title" id="artist-title-name">{title}</h2>
+        {listMeta && <p className="browse-list-meta">{listMeta}</p>}
       </header>
 
       <div className="artist-layout">
@@ -256,19 +257,21 @@ export default function ArtistView({ artistSlug }) {
   );
 
   return (
-    <ArtistViewShell breadcrumbLabel={data.artist} title={data.artist} sidebar={sidebar}>
+    <ArtistViewShell
+      breadcrumbLabel={data.artist}
+      title={data.artist}
+      listMeta={
+        data.songs.length === 0
+          ? null
+          : `${filteredSongs.length} de ${data.songs.length} canciones`
+      }
+      sidebar={sidebar}
+    >
       <div className="artist-songs-container">
         {data.songs.length === 0 ? (
           <div className="list-empty">El catálogo del artista está vacío</div>
         ) : (
           <div className="artist-songs-table" id="artist-songs-grid">
-            <div className="artist-songs-table-header">
-              <span className="artist-songs-col-title">Canción</span>
-              <span className="artist-songs-col-meta">
-                {filteredSongs.length} de {data.songs.length}
-              </span>
-            </div>
-
             <nav className="artist-songs-tabs" aria-label="Filtrar por tipo">
               {TYPE_FILTERS.map((filter) => (
                 <button

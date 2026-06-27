@@ -267,18 +267,10 @@
   display: flex;
   flex-direction: column;
 
-  &-header {
-    @include browse-table-header;
-  }
-
   &-body {
     display: flex;
     flex-direction: column;
   }
-}
-
-.artist-songs-col-meta {
-  @include browse-table-meta;
 }
 
 .artist-songs-tabs {

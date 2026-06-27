@@ -1,4 +1,5 @@
 import { FavoritesService } from '../services/favoritesService.js';
+import { FavoritesImportService } from '../services/favoritesImportService.js';
 import { db } from '../db/index.js';
 
 export class FavoritesController {
@@ -21,6 +22,17 @@ export class FavoritesController {
       request.log.error(error);
       const status = error.status || 500;
       reply.status(status).send({ error: error.message || 'Error al agregar favorito' });
+    }
+  }
+
+  static async importFavorites(request, reply) {
+    try {
+      const result = await FavoritesImportService.importFromBatches(request.userId, request.body);
+      return result;
+    } catch (error) {
+      request.log.error(error);
+      const status = error.status || 500;
+      reply.status(status).send({ error: error.message || 'Error al importar favoritos' });
     }
   }
 

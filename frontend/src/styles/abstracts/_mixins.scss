@@ -39,27 +39,33 @@
   overflow: hidden;
 }
 
-@mixin browse-table-header {
+@mixin browse-table-header($columns: 1fr auto) {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: $columns;
   align-items: center;
-  gap: 16px;
-  padding: 10px 20px;
-  background: linear-gradient(90deg, $accent-tint-08 0%, $accent-tint-025 100%);
+  gap: 12px;
+  padding: 12px 20px;
+  background-color: var(--surface);
   border-bottom: 1px solid var(--border);
-  border-left: 3px solid var(--accent-light);
-  font-size: $font-size-table-header;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--accent-light);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+@mixin browse-table-header-label {
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: normal;
+  text-transform: none;
 }
 
 @mixin browse-table-meta {
+  font-size: 11px;
   font-weight: 600;
-  letter-spacing: 0.04em;
+  letter-spacing: normal;
   text-transform: none;
   color: var(--text-muted);
+  opacity: 0.85;
 }
 
 @mixin browse-table-row($columns, $padding-y: 17px, $padding-x: 20px) {

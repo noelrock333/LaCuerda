@@ -27,3 +27,10 @@ export async function updateFavoriteAwesomeApi(songId, isAwesome) {
     body: JSON.stringify({ is_awesome: isAwesome })
   });
 }
+
+export async function importFavoritesApi(text) {
+  return await apiFetch('/api/favorites/import', {
+    method: 'POST',
+    body: JSON.stringify({ text })
+  });
+}

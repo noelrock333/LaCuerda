@@ -8,6 +8,7 @@ import SongView from './views/SongView.jsx';
 import VersionView from './views/VersionView.jsx';
 import CatalogView from './views/CatalogView.jsx';
 import FavoritesView from './views/FavoritesView.jsx';
+import ImportFavoritesView from './views/ImportFavoritesView.jsx';
 import ChordModal from './components/ChordModal.jsx';
 import AuthModal from './components/AuthModal.jsx';
 import ImportSongModal from './components/ImportSongModal.jsx';
@@ -67,6 +68,7 @@ function App() {
 
           {/* Favoritos del usuario */}
           <Route path="/favorites" element={<FavoritesView />} />
+          <Route path="/favorites/import" element={<ImportFavoritesView />} />
 
           {/* Índice alfabético: /letter/A, /letter/B, etc. */}
           <Route path="/letter/:letter" element={<AlphabetView />} />

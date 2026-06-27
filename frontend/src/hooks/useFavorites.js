@@ -4,7 +4,8 @@ import {
   addFavoriteApi,
   removeFavoriteApi,
   getFavoriteStatusApi,
-  updateFavoriteAwesomeApi
+  updateFavoriteAwesomeApi,
+  importFavoritesApi
 } from '../api/favorites.js';
 import useAuthStore from '../store/useAuthStore.js';
 
@@ -56,6 +57,17 @@ export function useAwesomeMutation() {
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['favorites'] });
       queryClient.invalidateQueries({ queryKey: ['favorites', 'status', variables.songId] });
+    }
+  });
+}
+
+export function useImportFavoritesMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (text) => importFavoritesApi(text),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['favorites'] });
     }
   });
 }

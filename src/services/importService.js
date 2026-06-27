@@ -11,7 +11,7 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function normalizeImportUrl(url) {
+export function normalizeImportUrl(url) {
   const trimmed = url.trim();
   const wayback = parseWaybackUrl(trimmed);
   if (wayback) {
@@ -96,7 +96,7 @@ function buildSummary(imported) {
   );
 }
 
-async function processImportQueue(initialUrl, options = {}) {
+export async function processImportQueue(initialUrl, options = {}) {
   const {
     downloadAllVersions = false,
     skipIfExists = false,

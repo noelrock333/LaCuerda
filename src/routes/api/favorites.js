@@ -4,6 +4,10 @@ import { authenticate } from '../../hooks/authHook.js';
 export default async function favoritesRoutes(fastify, options) {
   fastify.get('/favorites', { preHandler: authenticate }, FavoritesController.getFavorites);
   fastify.post('/favorites', { preHandler: authenticate }, FavoritesController.addFavorite);
+  fastify.post('/favorites/import', {
+    preHandler: authenticate,
+    config: { timeout: 600000 }
+  }, FavoritesController.importFavorites);
   fastify.delete('/favorites/:songId', { preHandler: authenticate }, FavoritesController.removeFavorite);
   
   // No requiere preHandler global de auth porque devuelve un estado por defecto si no hay token

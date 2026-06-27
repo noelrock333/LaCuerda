@@ -29,6 +29,13 @@
   color: var(--accent-light);
 }
 
+.browse-list-meta {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 6px 0 0;
+  font-weight: 500;
+}
+
 /* Paginación (vista alfabética) */
 .pagination-container {
   display: flex;

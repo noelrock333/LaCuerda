@@ -1,6 +1,9 @@
 /* ==========================================================================
    VISTA DE CATÁLOGO / BIBLIOTECA LOCAL
    ========================================================================== */
+@use '../abstracts/mixins' as *;
+@use '../abstracts/variables' as *;
+
 .catalog-header {
   display: flex;
   justify-content: space-between;
@@ -10,21 +13,27 @@
   margin-bottom: 28px;
 }
 
-.catalog-title-section h2 {
-  font-size: 28px;
-  font-weight: 800;
-  letter-spacing: -0.5px;
-  color: var(--text-highlight);
-  margin-bottom: 6px;
-}
+.catalog-title-section {
+  h2 {
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    color: var(--text-highlight);
+    margin-bottom: 6px;
 
-.catalog-title-section h2 span {
-  color: var(--accent);
-}
+    span {
+      color: var(--accent-light);
+    }
+  }
 
-.catalog-title-section p {
-  font-size: 14px;
-  color: var(--text-muted);
+  p {
+    font-size: 14px;
+    color: var(--text-muted);
+  }
+
+  .browse-list-meta {
+    margin-top: 8px;
+  }
 }
 
 .catalog-stats {
@@ -35,19 +44,17 @@
 .stat-card {
   background-color: var(--bg-secondary);
   border: 1px solid var(--border);
-  border-radius: 12px;
   padding: 12px 20px;
   min-width: 100px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
 }
 
 .stat-num {
   font-size: 24px;
   font-weight: 800;
-  color: var(--accent);
+  color: var(--accent-light);
   line-height: 1.2;
 }
 
@@ -59,29 +66,59 @@
   letter-spacing: 0.5px;
 }
 
-/* Filtro de catálogo */
 .catalog-filter-box {
   position: relative;
-  margin-bottom: 32px;
+  margin-bottom: 24px;
   max-width: 600px;
+
+  &--inline {
+    flex: 1;
+    max-width: none;
+    margin-bottom: 0;
+  }
+
+  input {
+    width: 100%;
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border);
+    padding: 12px 40px 12px 42px;
+    color: var(--text-main);
+    font-size: 14px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+    &:focus {
+      outline: none;
+      border-color: var(--accent-light);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+  }
 }
 
-.catalog-filter-box input {
+.catalog-filters-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
   width: 100%;
-  background-color: var(--bg-secondary);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 12px 16px 12px 42px;
-  color: var(--text-main);
-  font-size: 14px;
-  transition: all 0.2s ease;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.01);
 }
 
-.catalog-filter-box input:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-glow);
+.catalog-chida-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-main);
+  user-select: none;
+  white-space: nowrap;
+
+  input {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--chord-color);
+  }
 }
 
 .filter-search-icon {
@@ -106,123 +143,118 @@
   cursor: pointer;
   padding: 0;
   transition: color 0.15s ease;
+
+  &:hover {
+    color: var(--text-highlight);
+  }
 }
 
-.clear-filter-btn:hover {
-  color: var(--text-highlight);
-}
-
-/* Rejilla de Catálogo */
-.catalog-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+.catalog-list {
+  display: flex;
+  flex-direction: column;
   gap: 24px;
   margin-bottom: 40px;
 }
 
-.artist-catalog-card {
-  background-color: var(--bg-secondary);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
-  transition: all 0.2s ease;
-  display: flex;
-  flex-direction: column;
+.catalog-artist-block {
+  @include browse-table-container;
+
+  &--favorites .catalog-artist-count {
+    color: var(--chord-color);
+  }
 }
 
-.artist-catalog-card:hover {
-  border-color: var(--border);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.04);
-}
-
-.artist-catalog-header {
-  padding: 16px 20px;
-  background-color: var(--bg-primary);
-  border-bottom: 1px solid var(--border);
+.catalog-artist-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 16px;
+  padding: 12px 20px;
+  background-color: var(--surface);
+  border-bottom: 1px solid var(--border);
 }
 
-.artist-catalog-header h3 {
-  font-size: 16px;
+.catalog-artist-name {
+  font-size: 15px;
   font-weight: 700;
   color: var(--text-highlight);
-}
-
-.artist-song-count {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-muted);
-  background-color: rgba(0, 0, 0, 0.04);
-  padding: 2px 8px;
-  border-radius: 10px;
-}
-
-.artist-songs-list {
-  padding: 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.catalog-song-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 12px;
-  border-radius: 8px;
   text-decoration: none;
-  color: var(--text-main);
-  transition: all 0.15s ease;
-}
-
-.catalog-song-item:hover {
-  background-color: var(--surface-hover);
-  color: var(--accent);
-}
-
-.song-item-info {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-}
-
-.song-item-icon {
-  font-size: 14px;
-  color: var(--text-muted);
-  opacity: 0.7;
-}
-
-.catalog-song-item:hover .song-item-icon {
-  color: var(--accent);
-  opacity: 1;
-}
-
-.song-item-title {
-  font-size: 14px;
-  font-weight: 500;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+
+  &:hover {
+    color: var(--accent-light);
+  }
 }
 
-.song-versions-badge {
+.catalog-artist-count {
   font-size: 11px;
   font-weight: 600;
   color: var(--text-muted);
-  border: 1px solid var(--border);
-  padding: 1px 6px;
-  border-radius: 4px;
-  background-color: var(--bg-secondary);
-  flex-shrink: 0;
+  white-space: nowrap;
 }
 
-.catalog-song-item:hover .song-versions-badge {
-  border-color: var(--accent);
-  color: var(--accent);
+.catalog-artist-songs {
+  display: flex;
+  flex-direction: column;
+}
+
+.catalog-song-row {
+  @include browse-table-row(36px 1fr auto 24px);
+
+  &--favorites {
+    grid-template-columns: 36px 1fr auto auto 24px;
+  }
+
+  &:hover {
+    .catalog-song-row-index {
+      opacity: 1;
+    }
+
+    .catalog-song-row-arrow {
+      @include browse-row-arrow-hover;
+    }
+  }
+
+  &-index {
+    @include browse-row-index;
+  }
+
+  &-title {
+    @include browse-row-title;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  &-badge {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--accent-light);
+    background-color: var(--accent-glow);
+    padding: 2px 7px;
+    white-space: nowrap;
+  }
+
+  &-arrow {
+    @include browse-row-arrow;
+  }
+}
+
+.song-type-tag {
+  &--acordes {
+    @include song-type-tag($accent-blue, $accent-tint-12);
+  }
+
+  &--tab {
+    @include song-type-tag(#c2410c, rgba(234, 88, 12, 0.12));
+  }
+
+  &--bass {
+    @include song-type-tag(#7c3aed, rgba(124, 58, 237, 0.12));
+  }
 }
 
 /* Carga y Estados Vacíos */
@@ -239,7 +271,7 @@
   width: 40px;
   height: 40px;
   border: 3px solid var(--border);
-  border-top-color: var(--accent);
+  border-top-color: var(--accent-light);
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-bottom: 16px;
@@ -271,10 +303,12 @@
   padding: 80px 20px;
   background-color: var(--bg-secondary);
   border: 1px solid var(--border);
-  border-radius: 16px;
   max-width: 600px;
-  margin: 0 auto 40px auto;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.01);
+  margin: 0 auto 40px;
+
+  &--auth {
+    margin-top: 40px;
+  }
 }
 
 .empty-icon {

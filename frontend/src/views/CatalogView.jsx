@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useCatalogQuery } from '../hooks/useSongs.js';
 
 export default function CatalogView() {
@@ -8,7 +8,7 @@ export default function CatalogView() {
   if (isLoading) {
     return (
       <div className="catalog-loading-container">
-        <div className="catalog-loading-spinner"></div>
+        <div className="catalog-loading-spinner" />
         <p>Cargando biblioteca local...</p>
       </div>
     );
@@ -24,18 +24,17 @@ export default function CatalogView() {
     );
   }
 
-  // Lógica de filtrado local en tiempo real
-  const filteredCatalog = catalog.map(artistGroup => {
-    const matchedSongs = artistGroup.songs.filter(song =>
-      song.title.toLowerCase().includes(filterQuery.toLowerCase())
+  const filteredCatalog = catalog.map((artistGroup) => {
+    const matchedSongs = artistGroup.songs.filter((song) =>
+      song.title.toLowerCase().includes(filterQuery.toLowerCase()),
     );
-    
+
     const isArtistMatch = artistGroup.artist.toLowerCase().includes(filterQuery.toLowerCase());
-    
+
     if (isArtistMatch || matchedSongs.length > 0) {
       return {
         ...artistGroup,
-        songs: isArtistMatch ? artistGroup.songs : matchedSongs
+        songs: isArtistMatch ? artistGroup.songs : matchedSongs,
       };
     }
     return null;
@@ -45,14 +44,16 @@ export default function CatalogView() {
   const totalSongs = catalog.reduce((acc, curr) => acc + curr.songs.length, 0);
 
   return (
-    <section id="view-catalog" className="view-section">
+    <section id="view-catalog" className="view-section view-section--wide">
       <div className="catalog-header">
         <div className="catalog-title-section">
           <h2>Biblioteca <span>Local</span></h2>
           <p>Explora y administra todas tus tablaturas descargadas offline.</p>
+          <p className="browse-list-meta">
+            {totalArtists} artista{totalArtists !== 1 ? 's' : ''} · {totalSongs} canción{totalSongs !== 1 ? 'es' : ''}
+          </p>
         </div>
-        
-        {/* Tarjetas de estadísticas */}
+
         <div className="catalog-stats">
           <div className="stat-card">
             <span className="stat-num">{totalArtists}</span>
@@ -65,7 +66,6 @@ export default function CatalogView() {
         </div>
       </div>
 
-      {/* Caja de filtrado */}
       <div className="catalog-filter-box">
         <span className="filter-search-icon">🔍</span>
         <input
@@ -75,7 +75,7 @@ export default function CatalogView() {
           onChange={(e) => setFilterQuery(e.target.value)}
         />
         {filterQuery && (
-          <button className="clear-filter-btn" onClick={() => setFilterQuery('')}>
+          <button type="button" className="clear-filter-btn" onClick={() => setFilterQuery('')}>
             &times;
           </button>
         )}
@@ -88,33 +88,34 @@ export default function CatalogView() {
           <p>Prueba buscando con otros términos o descarga canciones primero.</p>
         </div>
       ) : (
-        <div className="catalog-grid">
-          {filteredCatalog.map(group => (
-            <div key={group.artistSlug} className="artist-catalog-card">
-              <header className="artist-catalog-header">
-                <h3>{group.artist}</h3>
-                <span className="artist-song-count">
+        <div className="catalog-list">
+          {filteredCatalog.map((group) => (
+            <section key={group.artistSlug} className="catalog-artist-block">
+              <header className="catalog-artist-header">
+                <a href={`/${group.artistSlug}`} className="catalog-artist-name">
+                  {group.artist}
+                </a>
+                <span className="catalog-artist-count">
                   {group.songs.length} {group.songs.length === 1 ? 'canción' : 'canciones'}
                 </span>
               </header>
-              <div className="artist-songs-list">
-                {group.songs.map(song => (
+              <div className="catalog-artist-songs">
+                {group.songs.map((song, index) => (
                   <a
                     key={song.songSlug}
                     href={`/${group.artistSlug}/${song.songSlug}`}
-                    className="catalog-song-item"
+                    className="catalog-song-row"
                   >
-                    <div className="song-item-info">
-                      <span className="song-item-icon">🎵</span>
-                      <span className="song-item-title">{song.title}</span>
-                    </div>
-                    <span className="song-versions-badge">
-                      {song.versionsCount} {song.versionsCount === 1 ? 'ver' : 'vers'}
+                    <span className="catalog-song-row-index">{index + 1}</span>
+                    <span className="catalog-song-row-title">{song.title}</span>
+                    <span className="catalog-song-row-badge">
+                      {song.versionsCount} ver.
                     </span>
+                    <span className="catalog-song-row-arrow" aria-hidden="true">›</span>
                   </a>
                 ))}
               </div>
-            </div>
+            </section>
           ))}
         </div>
       )}

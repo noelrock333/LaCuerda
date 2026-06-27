@@ -461,17 +461,42 @@ export class ChordsDatabase {
   }
 
   /**
-   * Agrega una versión a favoritos.
+   * Obtiene una versión por su source_url exacta.
    */
-  async addFavorite(userId, songId) {
+  async getSongBySourceUrl(sourceUrl) {
+    const result = await this.db
+      .select({
+        id: songs.id,
+        artist: songs.artist,
+        title: songs.title,
+        version_number: songs.version_number,
+        type: songs.type,
+        source_url: songs.source_url
+      })
+      .from(songs)
+      .where(eq(songs.source_url, sourceUrl))
+      .limit(1);
+    return result[0] || null;
+  }
+
+  /**
+   * Agrega una versión a favoritos.
+   * @returns {'added' | 'already_exists'}
+   */
+  async addFavorite(userId, songId, isAwesome = false) {
     try {
       await this.db
         .insert(favorites)
-        .values({ user_id: userId, song_id: songId });
+        .values({ user_id: userId, song_id: songId, is_awesome: isAwesome });
+      return 'added';
     } catch (e) {
       if (e.code !== '23505') {
         throw e;
       }
+      if (isAwesome) {
+        await this.updateFavoriteAwesome(userId, songId, true);
+      }
+      return 'already_exists';
     }
   }
 
